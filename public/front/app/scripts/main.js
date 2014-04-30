@@ -9,35 +9,36 @@ require.config({
         'angular-route': '../bower_components/angular-route/angular-route',
         'angular-resource': '../bower_components/angular-resource/angular-resource',
         'angular-mocks': '../bower_components/angular-mocks/angular-mocks',
-        'angular-cookies': '../bower_components/angular-cookies/angular-cookies'
-      },
-      shim: {
-          angular: {
+        'angular-cookies': '../bower_components/angular-cookies/angular-cookies',
+        jquery: '../bower_components/jquery/dist/jquery'
+    },
+    shim: {
+        angular: {
             exports: 'angular'
-          },
-          'angular-route': [
+        },
+        'angular-route': [
             'angular'
-          ],
-          'angular-cookies': [
+        ],
+        'angular-cookies': [
             'angular'
-          ],
-          'angular-sanitize': [
+        ],
+        'angular-sanitize': [
             'angular'
-          ],
-          'angular-resource': [
+        ],
+        'angular-resource': [
             'angular'
-          ],
-          'angular-mocks': {
+        ],
+        'angular-mocks': {
             deps: [
                 'angular'
-              ],
-              exports: 'angular.mock'
-            }
-          },
-          priority: [
-            'angular'
-          ]
-        });
+            ],
+            exports: 'angular.mock'
+        }
+    },
+    priority: [
+        'angular'
+    ]
+});
 
 //http://code.angularjs.org/1.2.1/docs/guide/bootstrap#overview_deferred-bootstrap
 window.name = 'NG_DEFER_BOOTSTRAP!';
