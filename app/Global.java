@@ -13,9 +13,14 @@ import play.Application;
 import play.GlobalSettings;
 import play.mvc.Call;
 
+import datasources.Couchbase;
+
 public class Global extends GlobalSettings {
 
 	public void onStart(Application app) {
+
+        Couchbase.connect();
+
 		PlayAuthenticate.setResolver(new Resolver() {
 
 			@Override
@@ -69,6 +74,11 @@ public class Global extends GlobalSettings {
 
 		initialData();
 	}
+
+    @Override
+    public void onStop(Application app) {
+        Couchbase.disconnect();
+    }
 
 	private void initialData() {
 		if (SecurityRole.find.findRowCount() == 0) {

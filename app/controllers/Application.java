@@ -2,7 +2,10 @@ package controllers;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.ExecutionException;
 
+import com.couchbase.client.CouchbaseClient;
+import datasources.Couchbase;
 import models.User;
 import play.Routes;
 import play.data.Form;
@@ -28,9 +31,13 @@ public class Application extends Controller {
 	public static final String FLASH_ERROR_KEY = "error";
 	public static final String USER_ROLE = "user";
 	
-	public static Result index() {
+	public static Result index() throws ExecutionException, InterruptedException {
 
         int i = 1;
+
+        CouchbaseClient client = Couchbase.getInstance();
+        client.set("my-first-document", "Hello Couchbase!").get();
+
 
         return ok(index.render());
 	}
