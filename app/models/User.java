@@ -18,6 +18,7 @@ import play.db.ebean.Model;
 
 import javax.persistence.*;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Initial version based on work by Steve Chaloner (steve@objectify.be) for
@@ -40,6 +41,8 @@ public class User extends Model implements Subject {
 	// @Column(unique = true)
 	public String email;
 
+    public final String doctype = "user";
+    
 	public String name;
 	
 	public String firstName;
@@ -102,7 +105,7 @@ public class User extends Model implements Subject {
 	public static User findByAuthUserIdentity(final AuthUserIdentity identity) {
 		if (identity == null) {
 			return null;
-		}
+ 		}
 		if (identity instanceof UsernamePasswordAuthUser) {
 			return findByUsernamePasswordIdentity((UsernamePasswordAuthUser) identity);
 		} else {
@@ -133,6 +136,19 @@ public class User extends Model implements Subject {
 	}
 
 	public static User create(final AuthUser authUser) {
+
+        final UserCB userCB = UserCB.create(authUser);
+        try {
+            userCB.save();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+//        userCB.active = true;
+//        userCB.id = new Long(11);
+
+
 		final User user = new User();
 		user.roles = Collections.singletonList(SecurityRole
 				.findByRoleName(controllers.Application.USER_ROLE));

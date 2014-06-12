@@ -1,11 +1,17 @@
 package controllers;
 
+import java.security.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.Objects;
+import java.util.Random;
 import java.util.concurrent.ExecutionException;
 
 import com.couchbase.client.CouchbaseClient;
+import com.google.gson.Gson;
 import datasources.Couchbase;
+import models.Test;
 import models.User;
 import play.Routes;
 import play.data.Form;
@@ -32,13 +38,6 @@ public class Application extends Controller {
 	public static final String USER_ROLE = "user";
 	
 	public static Result index() throws ExecutionException, InterruptedException {
-
-        int i = 1;
-
-        CouchbaseClient client = Couchbase.getInstance();
-        client.set("my-first-document", "Hello Couchbase!").get();
-
-
         return ok(index.render());
 	}
 
