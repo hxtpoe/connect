@@ -139,7 +139,7 @@ public class User extends Model implements Subject {
 
         final UserCB userCB = UserCB.create(authUser);
         try {
-            userCB.save();
+            userCB.save(authUser.getProvider());
         } catch (ExecutionException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {

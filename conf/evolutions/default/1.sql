@@ -32,6 +32,7 @@ create table token_action (
 create table users (
   id                        bigint not null,
   email                     varchar(255),
+  doctype                   varchar(255),
   name                      varchar(255),
   first_name                varchar(255),
   last_name                 varchar(255),

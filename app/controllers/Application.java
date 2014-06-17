@@ -13,6 +13,7 @@ import com.google.gson.Gson;
 import datasources.Couchbase;
 import models.Test;
 import models.User;
+import models.UserCB;
 import play.Routes;
 import play.data.Form;
 import play.mvc.*;

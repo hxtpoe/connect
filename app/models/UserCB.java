@@ -14,69 +14,76 @@ import models.TokenAction.Type;
 import play.data.format.Formats;
 import play.data.validation.Constraints;
 
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 
 //public class UserCB  implements Subject {
 public class UserCB {
-	/**
-	 *
-	 */
-	private static final long serialVersionUID = 1L;
+    /**
+     *
+     */
+    private static final long serialVersionUID = 1L;
 
-	public Long id;
+    public Long id;
 
-	// if you make this unique, keep in mind that users *must* merge/link their
-	// accounts then on signup with additional providers
-	// @Column(unique = true)
-	public String email;
+    // if you make this unique, keep in mind that users *must* merge/link their
+    // accounts then on signup with additional providers
+    // @Column(unique = true)
+    public String email;
 
-	public String name;
+    public String name;
 
-	public String firstName;
+    public String firstName;
 
-	public String lastName;
+    public String lastName;
 
-	@Formats.DateTime(pattern = "yyyy-MM-dd HH:mm:ss")
-	public Date lastLogin;
+    public String google;
+    public String password;
 
-	public boolean active;
+    @Formats.DateTime(pattern = "yyyy-MM-dd HH:mm:ss")
+    public Date lastLogin;
 
-	public boolean emailValidated;
+    public boolean active;
 
-//	@ManyToMany
-	public List<SecurityRoleCB> roles;
+    public boolean emailValidated;
 
-//	@OneToMany(cascade = CascadeType.ALL)
-	public List<LinkedAccountCB> linkedAccounts;
+    public List<SecurityRoleCB> roles;
 
-//	@ManyToMany
-	public List<String> permissions;
+    public List<String> permissions;
 
 
-    public void save() throws ExecutionException, InterruptedException {
+    public void save(String providerName) throws ExecutionException, InterruptedException {
 
         Gson gson = new Gson();
 
-            client.set(this.email, gson.toJson(this)).get();
-     }
+        Long uid = client.incr("u::count", 1);
+
+        UserCB.client.add("u::" + Long.toString(uid), gson.toJson(this));
+        UserCB.client.set("email::" + this.email, uid);
+        if (providerName != "password") {
+            UserCB.client.set(providerName + "::" + this.google, uid);
+        } else {
+            UserCB.client.set("username::" + this.name, uid);
+        }
+
+
+    }
 
     public static final CouchbaseClient client = Couchbase.getInstance();
 
-//	public static final Finder<Long, UserCB> find = new Finder<Long, UserCB>(
-//			Long.class, UserCB.class);
-
-//	@Override
+    //	@Override
 //	public String getIdentifier()
 //	{
 //		return Long.toString(id);
 //	}
 //
-	public List<? extends Role> getRoles() {
-		return roles;
-	}
-//
+    public List<? extends Role> getRoles() {
+        return roles;
+    }
+
+    //
 //	@Override
 //	public List<? extends Permission> getPermissions() {
 //		return permissions;
@@ -133,76 +140,80 @@ public class UserCB {
 //		Ebean.save(Arrays.asList(new UserCB[] { otherUser, this }));
 //	}
 //
-	public static UserCB create(final AuthUser authUser) {
-		final UserCB user = new UserCB();
+    public static UserCB create(final AuthUser authUser) {
+        final UserCB user = new UserCB();
 
         SecurityRoleCB role = new SecurityRoleCB();
         role.roleName = controllers.Application.USER_ROLE;
 
-		user.roles = Collections.singletonList(role);
-		user.permissions = new ArrayList<String>();
+        user.roles = Collections.singletonList(role);
+        user.permissions = new ArrayList<String>();
         user.permissions.add(controllers.Application.USER_ROLE);
 
-		user.active = true;
-		user.lastLogin = new Date();
+        user.active = true;
+        user.lastLogin = new Date();
 
-		user.linkedAccounts = Collections.singletonList(LinkedAccountCB
-				.create(authUser));
-
-		if (authUser instanceof EmailIdentity) {
-			final EmailIdentity identity = (EmailIdentity) authUser;
-			// Remember, even when getting them from FB & Co., emails should be
-			// verified within the application as a security breach there might
-			// break your security as well!
-			user.email = identity.getEmail();
-			user.emailValidated = false;
-		}
-
-		if (authUser instanceof NameIdentity) {
-			final NameIdentity identity = (NameIdentity) authUser;
-			final String name = identity.getName();
-			if (name != null) {
-				user.name = name;
-			}
-		}
-
-		if (authUser instanceof FirstLastNameIdentity) {
-		  final FirstLastNameIdentity identity = (FirstLastNameIdentity) authUser;
-		  final String firstName = identity.getFirstName();
-		  final String lastName = identity.getLastName();
-		  if (firstName != null) {
-		    user.firstName = firstName;
-		  }
-		  if (lastName != null) {
-		    user.lastName = lastName;
-		  }
-		}
-
+        Field field = null;
         try {
-            user.save();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
+            field = user.getClass().getDeclaredField(authUser.getProvider());
+        } catch (NoSuchFieldException e) {
             e.printStackTrace();
         }
+
+        field.setAccessible(true);
+        try {
+            field.set(user, authUser.getId());
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+        if (authUser instanceof EmailIdentity) {
+            final EmailIdentity identity = (EmailIdentity) authUser;
+            // Remember, even when getting them from FB & Co., emails should be
+            // verified within the application as a security breach there might
+            // break your security as well!
+            user.email = identity.getEmail();
+            user.emailValidated = false;
+        }
+
+        if (authUser instanceof NameIdentity) {
+            final NameIdentity identity = (NameIdentity) authUser;
+            final String name = identity.getName();
+            if (name != null) {
+                user.name = name;
+            }
+        }
+
+        if (authUser instanceof FirstLastNameIdentity) {
+            final FirstLastNameIdentity identity = (FirstLastNameIdentity) authUser;
+            final String firstName = identity.getFirstName();
+            final String lastName = identity.getLastName();
+            if (firstName != null) {
+                user.firstName = firstName;
+            }
+            if (lastName != null) {
+                user.lastName = lastName;
+            }
+        }
+
 //		user.saveManyToManyAssociations("roles");
-		// user.saveManyToManyAssociations("permissions");
-		return user;
-	}
+        // user.saveManyToManyAssociations("permissions");
+        return user;
+    }
 
 //	public static void merge(final AuthUser oldUser, final AuthUser newUser) {
 //		UserCB.findByAuthUserIdentity(oldUser).merge(
 //				UserCB.findByAuthUserIdentity(newUser));
 //	}
 
-	public Set<String> getProviders() {
-		final Set<String> providerKeys = new HashSet<String>(
-				linkedAccounts.size());
-		for (final LinkedAccountCB acc : linkedAccounts) {
-			providerKeys.add(acc.providerKey);
-		}
-		return providerKeys;
-	}
+    //	public Set<String> getProviders() {
+//		final Set<String> providerKeys = new HashSet<String>(
+//				linkedAccounts.size());
+//		for (final LinkedAccountCB acc : linkedAccounts) {
+//			providerKeys.add(acc.providerKey);
+//		}
+//		return providerKeys;
+//	}
 //
 //	public static void addLinkedAccount(final AuthUser oldUser,
 //			final AuthUser newUser) {
@@ -211,22 +222,32 @@ public class UserCB {
 //		u.save();
 //	}
 //
-//	public static void setLastLoginDate(final AuthUser knownUser) {
+    public static void setLastLoginDate(final AuthUser knownUser) {
 //		final UserCB u = UserCB.findByAuthUserIdentity(knownUser);
 //		u.lastLogin = new Date();
 //		u.save();
-//	}
-//
-	public static UserCB findByEmail(final String email) {
-		return getEmailUserFind(email).findUnique();
-	}
-//
+    }
+
+    public static UserCB findByEmail(final String email) {
+        Object uid = UserCB.client.get("email::" + email);
+        Gson gson = new Gson();
+        UserCB user = gson.fromJson((String) UserCB.client.get("u::" + uid), UserCB.class);
+
+        return user;
+    }
+
+
+    //
 //	private static ExpressionList<UserCB> getEmailUserFind(final String email) {
 //		return find.where().eq("active", true).eq("email", email);
 //	}
 //
-//	public LinkedAccount getAccountByProvider(final String providerKey) {
-//		return LinkedAccount.findByProviderKey(this, providerKey);
+//	public UserCB getAccountByProvider(final UsernamePasswordAuthUser authUser) {
+//
+//
+//
+//
+//		return LinkedAccountCB.findByProviderKey(this, providerKey);
 //	}
 //
 //	public static void verify(final UserCB unverified) {
@@ -236,9 +257,9 @@ public class UserCB {
 //		TokenAction.deleteByUser(unverified, Type.EMAIL_VERIFICATION);
 //	}
 //
-//	public void changePassword(final UsernamePasswordAuthUser authUser,
-//			final boolean create) {
-//		LinkedAccount a = this.getAccountByProvider(authUser.getProvider());
+    public void changePassword(final UsernamePasswordAuthUser authUser,
+                               final boolean create) {
+//		LinkedAccount a = this.getAccountByProvider(authUser);
 //		if (a == null) {
 //			if (create) {
 //				a = LinkedAccount.create(authUser);
@@ -250,7 +271,7 @@ public class UserCB {
 //		}
 //		a.providerUserId = authUser.getHashedPassword();
 //		a.save();
-//	}
+    }
 //
 //	public void resetPassword(final UsernamePasswordAuthUser authUser,
 //			final boolean create) {
