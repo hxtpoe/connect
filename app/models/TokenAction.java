@@ -2,28 +2,14 @@ package models;
 
 import java.util.Date;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.ManyToOne;
-
+import com.couchbase.client.CouchbaseClient;
+import com.google.gson.Gson;
+import datasources.Couchbase;
 import play.data.format.Formats;
-import play.db.ebean.Model;
 
-import com.avaje.ebean.Ebean;
-import com.avaje.ebean.QueryIterator;
-import com.avaje.ebean.annotation.EnumValue;
+public class TokenAction  {
 
-@Entity
-public class TokenAction extends Model {
-
-	public enum Type {
-		@EnumValue("EV")
-		EMAIL_VERIFICATION,
-
-		@EnumValue("PR")
-		PASSWORD_RESET
-	}
+//	public String Type  = "EMAIL_VERIFICATION";
 
 	/**
 	 * 
@@ -37,16 +23,13 @@ public class TokenAction extends Model {
 	 */
 	private final static long VERIFICATION_TIME = 7 * 24 * 3600;
 
-	@Id
-	public Long id;
+//	public Long id;
 
-	@Column(unique = true)
 	public String token;
 
-	@ManyToOne
-	public User targetUser;
+	public String targetUser;
 
-	public Type type;
+	public String type;
 
 	@Formats.DateTime(pattern = "yyyy-MM-dd HH:mm:ss")
 	public Date created;
@@ -54,34 +37,39 @@ public class TokenAction extends Model {
 	@Formats.DateTime(pattern = "yyyy-MM-dd HH:mm:ss")
 	public Date expires;
 
-	public static final Finder<Long, TokenAction> find = new Finder<Long, TokenAction>(
-			Long.class, TokenAction.class);
+    public static final CouchbaseClient client = Couchbase.getInstance();
 
-	public static TokenAction findByToken(final String token, final Type type) {
-		return find.where().eq("token", token).eq("type", type).findUnique();
+	public static TokenAction findByToken(final String token, final String type) {
+        Object uid = TokenAction.client.get("token::" + token);
+        Gson gson = new Gson();
+        return gson.fromJson((String) uid, TokenAction.class);
 	}
 
-	public static void deleteByUser(final User u, final Type type) {
-		QueryIterator<TokenAction> iterator = find.where()
-				.eq("targetUser.id", u.id).eq("type", type).findIterate();
-		Ebean.delete(iterator);
-		iterator.close();
+	public static void deleteByUser(final User u, final String type) {
+//		QueryIterator<TokenAction> iterator = find.where()
+//				.eq("targetUser.id", u.id).eq("type", type).findIterate();
+//		Ebean.delete(iterator);
+//		iterator.close();
 	}
 
 	public boolean isValid() {
 		return this.expires.after(new Date());
 	}
 
-	public static TokenAction create(final Type type, final String token,
+	public static TokenAction create(final String type, final String token,
 			final User targetUser) {
+
 		final TokenAction ua = new TokenAction();
-		ua.targetUser = targetUser;
-		ua.token = token;
-		ua.type = type;
-		final Date created = new Date();
-		ua.created = created;
-		ua.expires = new Date(created.getTime() + VERIFICATION_TIME * 1000);
-		ua.save();
+        ua.targetUser = Long.toString(targetUser.id);
+        ua.token = token;
+        ua.type = type;
+        final Date created = new Date();
+        ua.created = created;
+        ua.expires = new Date(created.getTime() + VERIFICATION_TIME * 1000);
+
+        Gson gson = new Gson();
+        TokenAction.client.add("token::" + ua.token, gson.toJson(ua));
+
 		return ua;
 	}
 }

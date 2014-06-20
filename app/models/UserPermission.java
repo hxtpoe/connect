@@ -10,14 +10,14 @@ import be.objectify.deadbolt.core.models.Permission;
  * Initial version based on work by Steve Chaloner (steve@objectify.be) for
  * Deadbolt2
  */
-@Entity
+//@Entity
 public class UserPermission extends Model implements Permission {
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 
-	@Id
+//	@Id
 	public Long id;
 
 	public String value;
