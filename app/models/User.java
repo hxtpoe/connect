@@ -18,7 +18,7 @@ import java.util.concurrent.ExecutionException;
 
 
 //public class User  implements Subject {
-public class User {
+public class User implements Subject {
     /**
      *
      */
@@ -69,6 +69,16 @@ public class User {
 
     public List<? extends Role> getRoles() {
         return roles;
+    }
+
+    @Override
+    public List<? extends Permission> getPermissions() {
+        return null;
+    }
+
+    @Override
+    public String getIdentifier() {
+         return Long.toString(id);
     }
 
     public static boolean existsByAuthUserIdentity(

@@ -10,7 +10,7 @@ import com.feth.play.module.pa.providers.password.UsernamePasswordAuthUser;
 import com.feth.play.module.pa.user.*;
 import com.google.gson.Gson;
 import datasources.Couchbase;
-import models.TokenAction.Type;
+//import models.TokenAction.Type;
 import play.data.format.Formats;
 import play.data.validation.Constraints;
 
