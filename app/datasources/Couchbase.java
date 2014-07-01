@@ -47,7 +47,7 @@ public final class Couchbase {
             client = new CouchbaseClient(hosts, bucket, password);
         } catch(Exception e) {
             Logger.error("Error creating Couchbase client: " + e.getMessage());
-            System.exit(0);
+//            System.exit(0);
         }
 
         return true;

@@ -8,12 +8,6 @@ import datasources.Couchbase;
 import play.data.format.Formats;
 
 public class TokenAction  {
-
-//	public String Type  = "EMAIL_VERIFICATION";
-
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 
 	/**
@@ -22,8 +16,6 @@ public class TokenAction  {
 	 * Defaults to one week
 	 */
 	private final static long VERIFICATION_TIME = 7 * 24 * 3600;
-
-//	public Long id;
 
 	public String token;
 
@@ -46,10 +38,7 @@ public class TokenAction  {
 	}
 
 	public static void deleteByUser(final User u, final String type) {
-//		QueryIterator<TokenAction> iterator = find.where()
-//				.eq("targetUser.id", u.id).eq("type", type).findIterate();
-//		Ebean.delete(iterator);
-//		iterator.close();
+        //@ToDO implement
 	}
 
 	public boolean isValid() {

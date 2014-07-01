@@ -202,7 +202,8 @@ public class Signup extends Controller {
 
 		final String email = u.email;
 		User.verify(u);
-		flash(Application.FLASH_MESSAGE_KEY,
+
+        flash(Application.FLASH_MESSAGE_KEY,
 				Messages.get("playauthenticate.verify_email.success", email));
 		if (Application.getLocalUser(session()) != null) {
 			return redirect(routes.Application.index());

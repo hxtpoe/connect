@@ -155,7 +155,6 @@ public class MyUsernamePasswordAuthProvider
 			if (!u.emailValidated) {
 				return LoginResult.USER_UNVERIFIED;
 			} else {
-//				for (final LinkedAccount acc : u.linkedAccounts) {
                 String s = getKey();
 					if (getKey().equals("password")) {
 						if (authUser.checkPassword(u.password,
@@ -170,7 +169,6 @@ public class MyUsernamePasswordAuthProvider
 							return LoginResult.WRONG_PASSWORD;
 						}
 					}
-//				}
 				return LoginResult.WRONG_PASSWORD;
 			}
 		}

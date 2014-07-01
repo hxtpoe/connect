@@ -3,32 +3,23 @@ package models;
 import be.objectify.deadbolt.core.models.Permission;
 import be.objectify.deadbolt.core.models.Role;
 import be.objectify.deadbolt.core.models.Subject;
-import com.avaje.ebean.ExpressionList;
 import com.couchbase.client.CouchbaseClient;
 import com.feth.play.module.pa.providers.password.UsernamePasswordAuthUser;
 import com.feth.play.module.pa.user.*;
 import com.google.gson.Gson;
 import datasources.Couchbase;
 import play.data.format.Formats;
-import play.data.validation.Constraints;
 
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
-
 //public class User  implements Subject {
 public class User implements Subject {
-    /**
-     *
-     */
     private static final long serialVersionUID = 1L;
 
     public Long id;
 
-    // if you make this unique, keep in mind that users *must* merge/link their
-    // accounts then on signup with additional providers
-    // @Column(unique = true)
     public String email;
 
     public String name;
@@ -38,6 +29,7 @@ public class User implements Subject {
     public String lastName;
 
     public String google;
+    public String facebook;
     public String password;
 
     @Formats.DateTime(pattern = "yyyy-MM-dd HH:mm:ss")
@@ -51,6 +43,11 @@ public class User implements Subject {
 
     public List<String> permissions;
 
+    public void save() throws ExecutionException, InterruptedException {
+
+        Gson gson = new Gson();
+        User.client.set("u::" + Long.toString(this.id), gson.toJson(this));
+    }
 
     public void save(String providerName) throws ExecutionException, InterruptedException {
 
@@ -89,14 +86,6 @@ public class User implements Subject {
         return u instanceof User;
     }
 
-    //
-//	private static ExpressionList<User> getAuthUserFind(
-//			final AuthUserIdentity identity) {
-//		return find.where().eq("active", true)
-//				.eq("linkedAccounts.providerUserId", identity.getId())
-//				.eq("linkedAccounts.providerKey", identity.getProvider());
-//	}
-//
     public static User findByAuthUserIdentity(final AuthUserIdentity identity) {
         if (identity == null) {
             return null;
@@ -124,7 +113,6 @@ public class User implements Subject {
         return gson.fromJson((String) User.client.get("u::" + uid), User.class);
     }
 
-    ////
     public static User findByUsernamePasswordIdentity(
             final UsernamePasswordAuthUser identity) {
 
@@ -133,13 +121,6 @@ public class User implements Subject {
         return u;
     }
 
-    //
-//	private static ExpressionList<User> getUsernamePasswordAuthUserFind(
-//			final UsernamePasswordAuthUser identity) {
-//		return getEmailUserFind(identity.getEmail()).eq(
-//				"linkedAccounts.providerKey", identity.getProvider());
-//	}
-//
     public void merge(final User otherUser) {
 //		for (final LinkedAccount acc : otherUser.linkedAccounts) {
 //			this.linkedAccounts.add(LinkedAccount.create(acc));
@@ -260,9 +241,7 @@ public class User implements Subject {
             return null;
         }
 
-        User u = gson.fromJson((String) User.client.get("u::" + uid), User.class);
-
-        return u;
+        return gson.fromJson((String) User.client.get("u::" + uid), User.class);
     }
 
     public static User findByUid(String uid) {
@@ -275,12 +254,14 @@ public class User implements Subject {
         // You might want to wrap this into a transaction
         unverified.emailValidated = true;
         try {
-            unverified.save("email");
+            unverified.save();
         } catch (ExecutionException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
+        // @ToDo remove token
         TokenAction.deleteByUser(unverified, "EMAIL_VERIFICATION");
     }
 
@@ -288,7 +269,14 @@ public class User implements Subject {
     public void changePassword(final UsernamePasswordAuthUser authUser,
                                final boolean create) {
         // @ToDO
-
+        this.password = authUser.getHashedPassword();
+        try {
+            this.save();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public void resetPassword(final UsernamePasswordAuthUser authUser,

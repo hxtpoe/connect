@@ -39,14 +39,6 @@ public class Application extends Controller {
 	public static final String USER_ROLE = "user";
 	
 	public static Result index() throws ExecutionException, InterruptedException {
-
-        final AuthUser currentAuthUser = PlayAuthenticate.getUser(session());
-        final User localUser = User.findByAuthUserIdentity(currentAuthUser);
-
-        Session session = session();
-
-        Boolean test = PlayAuthenticate.isLoggedIn(session);
-
         return ok(index.render());
 	}
 
