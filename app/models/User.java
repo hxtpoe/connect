@@ -39,7 +39,7 @@ public class User implements Subject {
 
     public boolean emailValidated;
 
-    public List<SecurityRoleCB> roles;
+    public List<SecurityRole> roles;
 
     public List<String> permissions;
 
@@ -136,7 +136,7 @@ public class User implements Subject {
     public static User create(final AuthUser authUser) {
         final User user = new User();
 
-        SecurityRoleCB role = new SecurityRoleCB();
+        SecurityRole role = new SecurityRole();
         role.roleName = controllers.Application.USER_ROLE;
 
         user.roles = Collections.singletonList(role);
