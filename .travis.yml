@@ -1,12 +1,9 @@
 language: scala
-env:
-  - ACTIVATOR_VERSION=1.2.3
-before_script:
-  - wget http://downloads.typesafe.com/typesafe-activator/${ACTIVATOR_VERSION}/typesafe-activator-${ACTIVATOR_VERSION}-minimal.zip
-  - unzip -q typesafe-activator-${ACTIVATOR_VERSION}-minimal.zip
-script: activator-${ACTIVATOR_VERSION}/activator test
+scala:
+  - 2.11.1
+script:   
+  - "cd $TRAVIS_BUILD_DIR/code"
+  - "sbt ++$TRAVIS_SCALA_VERSION test"
+  - "sbt ++$TRAVIS_SCALA_VERSION publish-locals"
 notifications:
-  # Email notifications are disabled to not annoy anybody.
-  # See http://about.travis-ci.org/docs/user/build-configuration/ to learn more
-  # about configuring notification recipients and more.
   email: false
