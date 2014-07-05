@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/hxtpoe/connect.svg?branch=master)](https://travis-ci.org/hxtpoe/connect)
+
 Project
 =======
 
@@ -11,3 +13,4 @@ Installation
 =======
 In vagrant directory you've got virtual machine with Couchbase. 
 You can run the node using "vagrant up" command
+
