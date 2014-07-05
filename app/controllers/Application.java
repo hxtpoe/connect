@@ -1,8 +1,16 @@
 package controllers;
 
+import java.security.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.Objects;
+import java.util.Random;
+import java.util.concurrent.ExecutionException;
 
+import com.couchbase.client.CouchbaseClient;
+import com.google.gson.Gson;
+import datasources.Couchbase;
 import models.User;
 import play.Routes;
 import play.data.Form;
@@ -28,10 +36,7 @@ public class Application extends Controller {
 	public static final String FLASH_ERROR_KEY = "error";
 	public static final String USER_ROLE = "user";
 	
-	public static Result index() {
-
-        int i = 1;
-
+	public static Result index() throws ExecutionException, InterruptedException {
         return ok(index.render());
 	}
 

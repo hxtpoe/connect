@@ -3,247 +3,293 @@ package models;
 import be.objectify.deadbolt.core.models.Permission;
 import be.objectify.deadbolt.core.models.Role;
 import be.objectify.deadbolt.core.models.Subject;
-import com.avaje.ebean.Ebean;
-import com.avaje.ebean.ExpressionList;
+import com.couchbase.client.CouchbaseClient;
 import com.feth.play.module.pa.providers.password.UsernamePasswordAuthUser;
-import com.feth.play.module.pa.user.AuthUser;
-import com.feth.play.module.pa.user.AuthUserIdentity;
-import com.feth.play.module.pa.user.EmailIdentity;
-import com.feth.play.module.pa.user.NameIdentity;
-import com.feth.play.module.pa.user.FirstLastNameIdentity;
-import models.TokenAction.Type;
+import com.feth.play.module.pa.user.*;
+import com.google.gson.Gson;
+import datasources.Couchbase;
 import play.data.format.Formats;
-import play.data.validation.Constraints;
-import play.db.ebean.Model;
 
-import javax.persistence.*;
+import java.lang.reflect.Field;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
-/**
- * Initial version based on work by Steve Chaloner (steve@objectify.be) for
- * Deadbolt2
- */
-@Entity
-@Table(name = "users")
-public class User extends Model implements Subject {
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+//public class User  implements Subject {
+public class User implements Subject {
+    private static final long serialVersionUID = 1L;
 
-	@Id
-	public Long id;
+    public Long id;
 
-	@Constraints.Email
-	// if you make this unique, keep in mind that users *must* merge/link their
-	// accounts then on signup with additional providers
-	// @Column(unique = true)
-	public String email;
+    public String email;
 
-	public String name;
-	
-	public String firstName;
-	
-	public String lastName;
+    public String name;
 
-	@Formats.DateTime(pattern = "yyyy-MM-dd HH:mm:ss")
-	public Date lastLogin;
+    public String firstName;
 
-	public boolean active;
+    public String lastName;
 
-	public boolean emailValidated;
+    public String google;
+    public String facebook;
+    public String password;
 
-	@ManyToMany
-	public List<SecurityRole> roles;
+    @Formats.DateTime(pattern = "yyyy-MM-dd HH:mm:ss")
+    public Date lastLogin;
 
-	@OneToMany(cascade = CascadeType.ALL)
-	public List<LinkedAccount> linkedAccounts;
+    public boolean active;
 
-	@ManyToMany
-	public List<UserPermission> permissions;
+    public boolean emailValidated;
 
-	public static final Finder<Long, User> find = new Finder<Long, User>(
-			Long.class, User.class);
+    public List<SecurityRole> roles;
 
-	@Override
-	public String getIdentifier()
-	{
-		return Long.toString(id);
-	}
+    public List<String> permissions;
 
-	@Override
-	public List<? extends Role> getRoles() {
-		return roles;
-	}
+    public void save() throws ExecutionException, InterruptedException {
 
-	@Override
-	public List<? extends Permission> getPermissions() {
-		return permissions;
-	}
+        Gson gson = new Gson();
+        User.client.set("u::" + Long.toString(this.id), gson.toJson(this));
+    }
 
-	public static boolean existsByAuthUserIdentity(
-			final AuthUserIdentity identity) {
-		final ExpressionList<User> exp;
-		if (identity instanceof UsernamePasswordAuthUser) {
-			exp = getUsernamePasswordAuthUserFind((UsernamePasswordAuthUser) identity);
-		} else {
-			exp = getAuthUserFind(identity);
-		}
-		return exp.findRowCount() > 0;
-	}
+    public void save(String providerName) throws ExecutionException, InterruptedException {
 
-	private static ExpressionList<User> getAuthUserFind(
-			final AuthUserIdentity identity) {
-		return find.where().eq("active", true)
-				.eq("linkedAccounts.providerUserId", identity.getId())
-				.eq("linkedAccounts.providerKey", identity.getProvider());
-	}
+        Gson gson = new Gson();
 
-	public static User findByAuthUserIdentity(final AuthUserIdentity identity) {
-		if (identity == null) {
-			return null;
-		}
-		if (identity instanceof UsernamePasswordAuthUser) {
-			return findByUsernamePasswordIdentity((UsernamePasswordAuthUser) identity);
-		} else {
-			return getAuthUserFind(identity).findUnique();
-		}
-	}
+        User.client.add("u::" + Long.toString(this.id), gson.toJson(this));
+        User.client.set("email::" + this.email, this.id);
+        if (providerName != "password") {
+            User.client.set(providerName + "::" + this.google, this.id);
+        } else {
+            User.client.set("username::" + this.name, this.id);
+        }
+    }
 
-	public static User findByUsernamePasswordIdentity(
-			final UsernamePasswordAuthUser identity) {
-		return getUsernamePasswordAuthUserFind(identity).findUnique();
-	}
+    public static final CouchbaseClient client = Couchbase.getInstance();
 
-	private static ExpressionList<User> getUsernamePasswordAuthUserFind(
-			final UsernamePasswordAuthUser identity) {
-		return getEmailUserFind(identity.getEmail()).eq(
-				"linkedAccounts.providerKey", identity.getProvider());
-	}
+    public List<? extends Role> getRoles() {
+        return roles;
+    }
 
-	public void merge(final User otherUser) {
-		for (final LinkedAccount acc : otherUser.linkedAccounts) {
-			this.linkedAccounts.add(LinkedAccount.create(acc));
-		}
-		// do all other merging stuff here - like resources, etc.
+    @Override
+    public List<? extends Permission> getPermissions() {
+        return null;
+    }
 
-		// deactivate the merged user that got added to this one
-		otherUser.active = false;
-		Ebean.save(Arrays.asList(new User[] { otherUser, this }));
-	}
+    @Override
+    public String getIdentifier() {
+         return Long.toString(id);
+    }
 
-	public static User create(final AuthUser authUser) {
-		final User user = new User();
-		user.roles = Collections.singletonList(SecurityRole
-				.findByRoleName(controllers.Application.USER_ROLE));
-		// user.permissions = new ArrayList<UserPermission>();
-		// user.permissions.add(UserPermission.findByValue("printers.edit"));
-		user.active = true;
-		user.lastLogin = new Date();
-		user.linkedAccounts = Collections.singletonList(LinkedAccount
-				.create(authUser));
+    public static boolean existsByAuthUserIdentity(
+            final AuthUserIdentity identity) {
 
-		if (authUser instanceof EmailIdentity) {
-			final EmailIdentity identity = (EmailIdentity) authUser;
-			// Remember, even when getting them from FB & Co., emails should be
-			// verified within the application as a security breach there might
-			// break your security as well!
-			user.email = identity.getEmail();
-			user.emailValidated = false;
-		}
+            User u = findByProvider(identity);
 
-		if (authUser instanceof NameIdentity) {
-			final NameIdentity identity = (NameIdentity) authUser;
-			final String name = identity.getName();
-			if (name != null) {
-				user.name = name;
-			}
-		}
-		
-		if (authUser instanceof FirstLastNameIdentity) {
-		  final FirstLastNameIdentity identity = (FirstLastNameIdentity) authUser;
-		  final String firstName = identity.getFirstName();
-		  final String lastName = identity.getLastName();
-		  if (firstName != null) {
-		    user.firstName = firstName;
-		  }
-		  if (lastName != null) {
-		    user.lastName = lastName;
-		  }
-		}
+        return u instanceof User;
+    }
 
-		user.save();
-		user.saveManyToManyAssociations("roles");
-		// user.saveManyToManyAssociations("permissions");
-		return user;
-	}
+    public static User findByAuthUserIdentity(final AuthUserIdentity identity) {
+        if (identity == null) {
+            return null;
+        }
+        if (identity instanceof UsernamePasswordAuthUser) {
+            User user = findByUsernamePasswordIdentity((UsernamePasswordAuthUser) identity);
+            return findByUsernamePasswordIdentity((UsernamePasswordAuthUser) identity);
+        } else {
 
-	public static void merge(final AuthUser oldUser, final AuthUser newUser) {
-		User.findByAuthUserIdentity(oldUser).merge(
-				User.findByAuthUserIdentity(newUser));
-	}
 
-	public Set<String> getProviders() {
-		final Set<String> providerKeys = new HashSet<String>(
-				linkedAccounts.size());
-		for (final LinkedAccount acc : linkedAccounts) {
-			providerKeys.add(acc.providerKey);
-		}
-		return providerKeys;
-	}
+            Object uid = User.client.get(identity.getProvider() + "::" + identity.getId());
+            Gson gson = new Gson();
+            return gson.fromJson((String) User.client.get("u::" + uid), User.class);
+        }
+    }
 
-	public static void addLinkedAccount(final AuthUser oldUser,
-			final AuthUser newUser) {
-		final User u = User.findByAuthUserIdentity(oldUser);
-		u.linkedAccounts.add(LinkedAccount.create(newUser));
-		u.save();
-	}
+    private static User findByProvider(final AuthUserIdentity identity) {
+        Object uid = User.client.get(identity.getProvider() + "::" + identity.getId());
 
-	public static void setLastLoginDate(final AuthUser knownUser) {
+        if (uid == null) {
+            return null;
+        }
+        Gson gson = new Gson();
+
+        return gson.fromJson((String) User.client.get("u::" + uid), User.class);
+    }
+
+    public static User findByUsernamePasswordIdentity(
+            final UsernamePasswordAuthUser identity) {
+
+        User u = User.findByEmail(identity.getEmail());
+
+        return u;
+    }
+
+    public void merge(final User otherUser) {
+//		for (final LinkedAccount acc : otherUser.linkedAccounts) {
+//			this.linkedAccounts.add(LinkedAccount.create(acc));
+//		}
+//		// do all other merging stuff here - like resources, etc.
+//
+//		// deactivate the merged user that got added to this one
+//		otherUser.active = false;
+//		Ebean.save(Arrays.asList(new User[] { otherUser, this }));
+    }
+
+    //
+    public static User create(final AuthUser authUser) {
+        final User user = new User();
+
+        SecurityRole role = new SecurityRole();
+        role.roleName = controllers.Application.USER_ROLE;
+
+        user.roles = Collections.singletonList(role);
+        user.permissions = new ArrayList<String>();
+        user.permissions.add(controllers.Application.USER_ROLE);
+
+        user.active = true;
+        user.lastLogin = new Date();
+
+        user.id =  User.client.incr("u::count", 1);
+
+        Field field = null;
+        try {
+            field = user.getClass().getDeclaredField(authUser.getProvider());
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        }
+
+        field.setAccessible(true);
+        try {
+            field.set(user, authUser.getId());
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+        if (authUser instanceof EmailIdentity) {
+            final EmailIdentity identity = (EmailIdentity) authUser;
+            // Remember, even when getting them from FB & Co., emails should be
+            // verified within the application as a security breach there might
+            // break your security as well!
+            user.email = identity.getEmail();
+            user.emailValidated = false;
+        }
+
+        if (authUser instanceof NameIdentity) {
+            final NameIdentity identity = (NameIdentity) authUser;
+            final String name = identity.getName();
+            if (name != null) {
+                user.name = name;
+            }
+        }
+
+        if (authUser instanceof FirstLastNameIdentity) {
+            final FirstLastNameIdentity identity = (FirstLastNameIdentity) authUser;
+            final String firstName = identity.getFirstName();
+            final String lastName = identity.getLastName();
+            if (firstName != null) {
+                user.firstName = firstName;
+            }
+            if (lastName != null) {
+                user.lastName = lastName;
+            }
+        }
+
+        try {
+            user.save(authUser.getProvider());
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return user;
+    }
+
+    public static void merge(final AuthUser oldUser, final AuthUser newUser) {
+        User.findByAuthUserIdentity(oldUser).merge(
+                User.findByAuthUserIdentity(newUser));
+    }
+
+    //	public Set<String> getProviders() {
+//		final Set<String> providerKeys = new HashSet<String>(
+//				linkedAccounts.size());
+//		for (final LinkedAccountCB acc : linkedAccounts) {
+//			providerKeys.add(acc.providerKey);
+//		}
+//		return providerKeys;
+//	}
+//
+//	public static void addLinkedAccount(final AuthUser oldUser,
+//			final AuthUser newUser) {
+//		final User u = User.findByAuthUserIdentity(oldUser);
+//		u.linkedAccounts.add(LinkedAccount.create(newUser));
+//		u.save();
+//	}
+//
+    public static void setLastLoginDate(final AuthUser knownUser) {
 		final User u = User.findByAuthUserIdentity(knownUser);
 		u.lastLogin = new Date();
-		u.save();
-	}
+        try {
+            u.save("password");
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 
-	public static User findByEmail(final String email) {
-		return getEmailUserFind(email).findUnique();
-	}
+    public static User findByEmail(final String email) {
+        Object uid = User.client.get("email::" + email);
+        Gson gson = new Gson();
+        if (uid == null) {
+            return null;
+        }
 
-	private static ExpressionList<User> getEmailUserFind(final String email) {
-		return find.where().eq("active", true).eq("email", email);
-	}
+        return gson.fromJson((String) User.client.get("u::" + uid), User.class);
+    }
 
-	public LinkedAccount getAccountByProvider(final String providerKey) {
-		return LinkedAccount.findByProviderKey(this, providerKey);
-	}
+    public static User findByUid(String uid) {
+        Gson gson = new Gson();
 
-	public static void verify(final User unverified) {
-		// You might want to wrap this into a transaction
-		unverified.emailValidated = true;
-		unverified.save();
-		TokenAction.deleteByUser(unverified, Type.EMAIL_VERIFICATION);
-	}
+        return gson.fromJson((String) User.client.get("u::" + uid), User.class);
+    }
 
-	public void changePassword(final UsernamePasswordAuthUser authUser,
-			final boolean create) {
-		LinkedAccount a = this.getAccountByProvider(authUser.getProvider());
-		if (a == null) {
-			if (create) {
-				a = LinkedAccount.create(authUser);
-				a.user = this;
-			} else {
-				throw new RuntimeException(
-						"Account not enabled for password usage");
-			}
-		}
-		a.providerUserId = authUser.getHashedPassword();
-		a.save();
-	}
+    public static void verify(final User unverified) {
+        // You might want to wrap this into a transaction
+        unverified.emailValidated = true;
+        try {
+            unverified.save();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
-	public void resetPassword(final UsernamePasswordAuthUser authUser,
-			final boolean create) {
-		// You might want to wrap this into a transaction
-		this.changePassword(authUser, create);
-		TokenAction.deleteByUser(this, Type.PASSWORD_RESET);
-	}
+        // @ToDo remove token
+        TokenAction.deleteByUser(unverified, "EMAIL_VERIFICATION");
+    }
+
+    //
+    public void changePassword(final UsernamePasswordAuthUser authUser,
+                               final boolean create) {
+        // @ToDO
+        this.password = authUser.getHashedPassword();
+        try {
+            this.save();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void resetPassword(final UsernamePasswordAuthUser authUser,
+                              final boolean create) {
+        // You might want to wrap this into a transaction
+        this.changePassword(authUser, create);
+        TokenAction.deleteByUser(this, "PASSWORD_RESET");
+    }
+
+    public Set<String> getProviders() {
+        final Set<String> providerKeys = new HashSet<String>();
+        return providerKeys;
+    }
+
+
 }

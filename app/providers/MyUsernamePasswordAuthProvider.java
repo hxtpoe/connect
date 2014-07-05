@@ -5,9 +5,7 @@ import com.feth.play.module.pa.PlayAuthenticate;
 import com.feth.play.module.pa.providers.password.UsernamePasswordAuthProvider;
 import com.feth.play.module.pa.providers.password.UsernamePasswordAuthUser;
 import controllers.routes;
-import models.LinkedAccount;
 import models.TokenAction;
-import models.TokenAction.Type;
 import models.User;
 import play.Application;
 import play.Logger;
@@ -25,6 +23,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 import static play.data.Form.form;
 
@@ -138,7 +137,8 @@ public class MyUsernamePasswordAuthProvider
 		// The user either does not exist or is inactive - create a new one
 		@SuppressWarnings("unused")
 		final User newUser = User.create(user);
-		// Usually the email should be verified before allowing login, however
+
+        // Usually the email should be verified before allowing login, however
 		// if you return
 		// return SignupResult.USER_CREATED;
 		// then the user gets logged in directly
@@ -155,9 +155,9 @@ public class MyUsernamePasswordAuthProvider
 			if (!u.emailValidated) {
 				return LoginResult.USER_UNVERIFIED;
 			} else {
-				for (final LinkedAccount acc : u.linkedAccounts) {
-					if (getKey().equals(acc.providerKey)) {
-						if (authUser.checkPassword(acc.providerUserId,
+                String s = getKey();
+					if (getKey().equals("password")) {
+						if (authUser.checkPassword(u.password,
 								authUser.getPassword())) {
 							// Password was correct
 							return LoginResult.USER_LOGGED_IN;
@@ -169,7 +169,6 @@ public class MyUsernamePasswordAuthProvider
 							return LoginResult.WRONG_PASSWORD;
 						}
 					}
-				}
 				return LoginResult.WRONG_PASSWORD;
 			}
 		}
@@ -253,13 +252,13 @@ public class MyUsernamePasswordAuthProvider
 	protected String generateVerificationRecord(final User user) {
 		final String token = generateToken();
 		// Do database actions, etc.
-		TokenAction.create(Type.EMAIL_VERIFICATION, token, user);
+		TokenAction.create("EMAIL_VERIFICATION", token, user);
 		return token;
 	}
 
 	protected String generatePasswordResetRecord(final User u) {
 		final String token = generateToken();
-		TokenAction.create(Type.PASSWORD_RESET, token, u);
+		TokenAction.create("PASSWORD_RESET", token, u);
 		return token;
 	}
 

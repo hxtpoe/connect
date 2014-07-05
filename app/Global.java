@@ -13,9 +13,14 @@ import play.Application;
 import play.GlobalSettings;
 import play.mvc.Call;
 
+import datasources.Couchbase;
+
 public class Global extends GlobalSettings {
 
 	public void onStart(Application app) {
+
+        Couchbase.connect();
+
 		PlayAuthenticate.setResolver(new Resolver() {
 
 			@Override
@@ -66,18 +71,10 @@ public class Global extends GlobalSettings {
 				return super.onException(e);
 			}
 		});
-
-		initialData();
 	}
 
-	private void initialData() {
-		if (SecurityRole.find.findRowCount() == 0) {
-			for (final String roleName : Arrays
-					.asList(controllers.Application.USER_ROLE)) {
-				final SecurityRole role = new SecurityRole();
-				role.roleName = roleName;
-				role.save();
-			}
-		}
-	}
+    @Override
+    public void onStop(Application app) {
+        Couchbase.disconnect();
+    }
 }

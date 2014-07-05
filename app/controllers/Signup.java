@@ -1,7 +1,6 @@
 package controllers;
 
 import models.TokenAction;
-import models.TokenAction.Type;
 import models.User;
 import play.data.Form;
 import play.i18n.Messages;
@@ -117,7 +116,7 @@ public class Signup extends Controller {
 	 * @param type
 	 * @return
 	 */
-	private static TokenAction tokenIsValid(final String token, final Type type) {
+	private static TokenAction tokenIsValid(final String token, final String type) {
 		TokenAction ret = null;
 		if (token != null && !token.trim().isEmpty()) {
 			final TokenAction ta = TokenAction.findByToken(token, type);
@@ -131,7 +130,7 @@ public class Signup extends Controller {
 
 	public static Result resetPassword(final String token) {
 		com.feth.play.module.pa.controllers.Authenticate.noCache(response());
-		final TokenAction ta = tokenIsValid(token, Type.PASSWORD_RESET);
+		final TokenAction ta = tokenIsValid(token, "PASSWORD_RESET");
 		if (ta == null) {
 			return badRequest(no_token_or_invalid.render());
 		}
@@ -150,11 +149,11 @@ public class Signup extends Controller {
 			final String token = filledForm.get().token;
 			final String newPassword = filledForm.get().password;
 
-			final TokenAction ta = tokenIsValid(token, Type.PASSWORD_RESET);
+			final TokenAction ta = tokenIsValid(token, "PASSWORD_RESET");
 			if (ta == null) {
 				return badRequest(no_token_or_invalid.render());
 			}
-			final User u = ta.targetUser;
+			final User u = User.findByUid(ta.targetUser);
 			try {
 				// Pass true for the second parameter if you want to
 				// automatically create a password and the exception never to
@@ -195,13 +194,16 @@ public class Signup extends Controller {
 
 	public static Result verify(final String token) {
 		com.feth.play.module.pa.controllers.Authenticate.noCache(response());
-		final TokenAction ta = tokenIsValid(token, Type.EMAIL_VERIFICATION);
+		final TokenAction ta = tokenIsValid(token, "EMAIL_VERIFICATION");
 		if (ta == null) {
 			return badRequest(no_token_or_invalid.render());
 		}
-		final String email = ta.targetUser.email;
-		User.verify(ta.targetUser);
-		flash(Application.FLASH_MESSAGE_KEY,
+        User u = User.findByUid(ta.targetUser);
+
+		final String email = u.email;
+		User.verify(u);
+
+        flash(Application.FLASH_MESSAGE_KEY,
 				Messages.get("playauthenticate.verify_email.success", email));
 		if (Application.getLocalUser(session()) != null) {
 			return redirect(routes.Application.index());

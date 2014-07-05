@@ -1,0 +1,32 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.provision "shell", inline: "echo Hello Couchbase!"
+
+  db_servers = {
+    :node1 => "192.168.1.42"
+  }
+
+  db_servers.each do |app_server_name, app_server_ip|
+
+    config.vm.define app_server_name do |app_config|
+      app_config.vm.box = app_server_name.to_s
+      # app_config.vm.box_url = "/Volumes/Poligon/precise64.box"
+      app_config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+      app_config.vm.network :private_network, ip: app_server_ip
+
+      app_config.vm.provider :virtualbox do |vb|
+        vb.customize ["modifyvm", :id, "--memory", "2024", "--cpus", "2", "--ioapic", "on"]
+      end
+
+      app_config.vm.provision :puppet do |puppet|
+        puppet.manifests_path = "manifests"
+        puppet.manifest_file  = "default.pp"
+      end
+
+    end
+
+
+  end
+end
