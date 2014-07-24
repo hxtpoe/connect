@@ -47,6 +47,11 @@ public class MyUserServicePlugin extends UserServicePlugin {
 	@Override
 	public AuthUser link(final AuthUser oldUser, final AuthUser newUser) {
 		//@ToDo implement link
+
+        User.link(oldUser, newUser);
+
+
+
         return newUser;
 	}
 	

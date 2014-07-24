@@ -14,9 +14,11 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
-//public class User  implements Subject {
 public class User implements Subject {
-    private static final long serialVersionUID = 1L;
+    public static final String USER_KEY_PREFIX = "u::";
+    public static final String USER_COUNT_KEY = "u::count";
+    public static final String EMAIL_KEY_PREFIX = "email::";
+    public static final String USERNAME_KEY_PREFIX = "username::";
 
     public Long id;
 
@@ -46,19 +48,19 @@ public class User implements Subject {
     public void save() throws ExecutionException, InterruptedException {
 
         Gson gson = new Gson();
-        User.client.set("u::" + Long.toString(this.id), gson.toJson(this));
+        User.client.set(USER_KEY_PREFIX + Long.toString(this.id), gson.toJson(this));
     }
 
     public void save(String providerName) throws ExecutionException, InterruptedException {
 
         Gson gson = new Gson();
 
-        User.client.add("u::" + Long.toString(this.id), gson.toJson(this));
-        User.client.set("email::" + this.email, this.id);
+        User.client.add(USER_KEY_PREFIX + Long.toString(this.id), gson.toJson(this));
+        User.client.set(EMAIL_KEY_PREFIX + this.email, this.id);
         if (providerName != "password") {
             User.client.set(providerName + "::" + this.google, this.id);
         } else {
-            User.client.set("username::" + this.name, this.id);
+            User.client.set(USERNAME_KEY_PREFIX + this.name, this.id);
         }
     }
 
@@ -75,13 +77,13 @@ public class User implements Subject {
 
     @Override
     public String getIdentifier() {
-         return Long.toString(id);
+        return Long.toString(id);
     }
 
     public static boolean existsByAuthUserIdentity(
             final AuthUserIdentity identity) {
 
-            User u = findByProvider(identity);
+        User u = findByProvider(identity);
 
         return u instanceof User;
     }
@@ -94,11 +96,9 @@ public class User implements Subject {
             User user = findByUsernamePasswordIdentity((UsernamePasswordAuthUser) identity);
             return findByUsernamePasswordIdentity((UsernamePasswordAuthUser) identity);
         } else {
-
-
             Object uid = User.client.get(identity.getProvider() + "::" + identity.getId());
             Gson gson = new Gson();
-            return gson.fromJson((String) User.client.get("u::" + uid), User.class);
+            return gson.fromJson((String) User.client.get(USER_KEY_PREFIX + uid), User.class);
         }
     }
 
@@ -110,7 +110,7 @@ public class User implements Subject {
         }
         Gson gson = new Gson();
 
-        return gson.fromJson((String) User.client.get("u::" + uid), User.class);
+        return gson.fromJson((String) User.client.get(USER_KEY_PREFIX + uid), User.class);
     }
 
     public static User findByUsernamePasswordIdentity(
@@ -121,15 +121,32 @@ public class User implements Subject {
         return u;
     }
 
+    public static void link(AuthUser oldUser, AuthUser newUser) {
+        User u = User.findByEmail(oldUser.getId());
+
+        switch (newUser.getProvider()) {
+            case "facebook": {
+                u.facebook = newUser.getId();
+            }
+            break;
+            case "google": {
+                u.google = newUser.getId();
+            }
+            break;
+        }
+
+        User.client.set(newUser.getProvider() + "::" + newUser.getId(), u.id);
+        try {
+            u.save();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void merge(final User otherUser) {
-//		for (final LinkedAccount acc : otherUser.linkedAccounts) {
-//			this.linkedAccounts.add(LinkedAccount.create(acc));
-//		}
-//		// do all other merging stuff here - like resources, etc.
-//
-//		// deactivate the merged user that got added to this one
-//		otherUser.active = false;
-//		Ebean.save(Arrays.asList(new User[] { otherUser, this }));
+        // @ToDo
     }
 
     //
@@ -146,7 +163,7 @@ public class User implements Subject {
         user.active = true;
         user.lastLogin = new Date();
 
-        user.id =  User.client.incr("u::count", 1);
+        user.id = User.client.incr(USER_COUNT_KEY, 1);
 
         Field field = null;
         try {
@@ -206,25 +223,9 @@ public class User implements Subject {
                 User.findByAuthUserIdentity(newUser));
     }
 
-    //	public Set<String> getProviders() {
-//		final Set<String> providerKeys = new HashSet<String>(
-//				linkedAccounts.size());
-//		for (final LinkedAccountCB acc : linkedAccounts) {
-//			providerKeys.add(acc.providerKey);
-//		}
-//		return providerKeys;
-//	}
-//
-//	public static void addLinkedAccount(final AuthUser oldUser,
-//			final AuthUser newUser) {
-//		final User u = User.findByAuthUserIdentity(oldUser);
-//		u.linkedAccounts.add(LinkedAccount.create(newUser));
-//		u.save();
-//	}
-//
     public static void setLastLoginDate(final AuthUser knownUser) {
-		final User u = User.findByAuthUserIdentity(knownUser);
-		u.lastLogin = new Date();
+        final User u = User.findByAuthUserIdentity(knownUser);
+        u.lastLogin = new Date();
         try {
             u.save("password");
         } catch (ExecutionException e) {
@@ -235,19 +236,19 @@ public class User implements Subject {
     }
 
     public static User findByEmail(final String email) {
-        Object uid = User.client.get("email::" + email);
+        Object uid = User.client.get(EMAIL_KEY_PREFIX + email);
         Gson gson = new Gson();
         if (uid == null) {
             return null;
         }
 
-        return gson.fromJson((String) User.client.get("u::" + uid), User.class);
+        return gson.fromJson((String) User.client.get(USER_KEY_PREFIX + uid), User.class);
     }
 
     public static User findByUid(String uid) {
         Gson gson = new Gson();
 
-        return gson.fromJson((String) User.client.get("u::" + uid), User.class);
+        return gson.fromJson((String) User.client.get(USER_KEY_PREFIX + uid), User.class);
     }
 
     public static void verify(final User unverified) {
@@ -268,7 +269,6 @@ public class User implements Subject {
     //
     public void changePassword(final UsernamePasswordAuthUser authUser,
                                final boolean create) {
-        // @ToDO
         this.password = authUser.getHashedPassword();
         try {
             this.save();
@@ -290,6 +290,4 @@ public class User implements Subject {
         final Set<String> providerKeys = new HashSet<String>();
         return providerKeys;
     }
-
-
 }
