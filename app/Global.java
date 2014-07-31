@@ -1,7 +1,5 @@
 import java.util.Arrays;
 
-import models.SecurityRole;
-
 import com.feth.play.module.pa.PlayAuthenticate;
 import com.feth.play.module.pa.PlayAuthenticate.Resolver;
 import com.feth.play.module.pa.exceptions.AccessDeniedException;
@@ -33,21 +31,21 @@ public class Global extends GlobalSettings {
 			public Call afterAuth() {
 				// The user will be redirected to this page after authentication
 				// if no original URL was saved
-				return routes.Application.index();
+				return routes.Application.restricted();
 			}
 
 			@Override
 			public Call afterLogout() {
-				return routes.Application.index();
+				return routes.Application.restricted();
 			}
 
 			@Override
 			public Call auth(final String provider) {
 				// You can provide your own authentication implementation,
 				// however the default should be sufficient for most cases
-				return com.feth.play.module.pa.controllers.routes.Authenticate
-						.authenticate(provider);
-			}
+                return com.feth.play.module.pa.controllers.routes.Authenticate.authenticate(provider);
+
+            }
 
 			@Override
 			public Call askMerge() {

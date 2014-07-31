@@ -105,7 +105,7 @@ public class Signup extends Controller {
 				}
 			}
 
-			return redirect(routes.Application.index());
+			return redirect(routes.Application.restricted());
 		}
 	}
 
@@ -206,7 +206,7 @@ public class Signup extends Controller {
         flash(Application.FLASH_MESSAGE_KEY,
 				Messages.get("playauthenticate.verify_email.success", email));
 		if (Application.getLocalUser(session()) != null) {
-			return redirect(routes.Application.index());
+			return redirect(routes.Application.restricted());
 		} else {
 			return redirect(routes.Application.login());
 		}

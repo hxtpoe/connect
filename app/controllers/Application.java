@@ -48,8 +48,7 @@ public class Application extends Controller {
 
 	@Restrict(@Group(Application.USER_ROLE))
 	public static Result restricted() {
-		final User localUser = getLocalUser(session());
-		return ok(restricted.render(localUser));
+        return redirect("assets/front/dist/index.html");
 	}
 
 	@Restrict(@Group(Application.USER_ROLE))
