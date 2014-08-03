@@ -14,7 +14,8 @@ val appDependencies = Seq(
   "com.couchbase.client" % "couchbase-client" % "1.4.2",
   "com.google.code.gson" % "gson" % "2.2.4",
   javaCore,
-  cache
+  cache,
+  javaWs
 )
 
 resolvers ++= Seq(
