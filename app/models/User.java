@@ -4,6 +4,7 @@ import be.objectify.deadbolt.core.models.Permission;
 import be.objectify.deadbolt.core.models.Role;
 import be.objectify.deadbolt.core.models.Subject;
 import com.couchbase.client.CouchbaseClient;
+import com.feth.play.module.pa.providers.oauth2.facebook.FacebookAuthUser;
 import com.feth.play.module.pa.providers.password.UsernamePasswordAuthUser;
 import com.feth.play.module.pa.user.*;
 import com.google.gson.Gson;
@@ -19,6 +20,10 @@ public class User implements Subject {
     public static final String USER_COUNT_KEY = "u::count";
     public static final String EMAIL_KEY_PREFIX = "email::";
     public static final String USERNAME_KEY_PREFIX = "username::";
+    public static final String PROVIDER_NAME_FACEBOOK = "facebook";
+    public static final String PROVIDER_NAME_GOOGLE = "google";
+    public static final String PROVIDER_NAME_PASSWORD = "google";
+    public static final String SEPARATOR = "::";
 
     public Long id;
 
@@ -29,6 +34,11 @@ public class User implements Subject {
     public String firstName;
 
     public String lastName;
+
+    public String gender;
+    public String country;
+    @Formats.DateTime(pattern = "yyyy-MM-dd HH:mm:ss")
+    public String birthdate;
 
     public String google;
     public String facebook;
@@ -57,8 +67,14 @@ public class User implements Subject {
 
         User.client.add(USER_KEY_PREFIX + Long.toString(this.id), gson.toJson(this));
         User.client.set(EMAIL_KEY_PREFIX + this.email, this.id);
-        if (providerName != "password") {
-            User.client.set(providerName + "::" + this.google, this.id);
+        if (providerName != PROVIDER_NAME_PASSWORD) {
+            if (providerName == PROVIDER_NAME_FACEBOOK) {
+                User.client.set(providerName + SEPARATOR + this.facebook, this.id);
+            }
+            if (providerName == PROVIDER_NAME_GOOGLE) {
+                User.client.set(providerName + SEPARATOR + this.google, this.id);
+            }
+
         } else {
             User.client.set(USERNAME_KEY_PREFIX + this.name, this.id);
         }
@@ -96,14 +112,14 @@ public class User implements Subject {
             User user = findByUsernamePasswordIdentity((UsernamePasswordAuthUser) identity);
             return findByUsernamePasswordIdentity((UsernamePasswordAuthUser) identity);
         } else {
-            Object uid = User.client.get(identity.getProvider() + "::" + identity.getId());
+            Object uid = User.client.get(identity.getProvider() + SEPARATOR + identity.getId());
             Gson gson = new Gson();
             return gson.fromJson((String) User.client.get(USER_KEY_PREFIX + uid), User.class);
         }
     }
 
     private static User findByProvider(final AuthUserIdentity identity) {
-        Object uid = User.client.get(identity.getProvider() + "::" + identity.getId());
+        Object uid = User.client.get(identity.getProvider() + SEPARATOR + identity.getId());
 
         if (uid == null) {
             return null;
@@ -125,17 +141,17 @@ public class User implements Subject {
         User u = User.findByEmail(oldUser.getId());
 
         switch (newUser.getProvider()) {
-            case "facebook": {
+            case PROVIDER_NAME_FACEBOOK: {
                 u.facebook = newUser.getId();
             }
             break;
-            case "google": {
+            case PROVIDER_NAME_GOOGLE: {
                 u.google = newUser.getId();
             }
             break;
         }
 
-        User.client.set(newUser.getProvider() + "::" + newUser.getId(), u.id);
+        User.client.set(newUser.getProvider() + SEPARATOR + newUser.getId(), u.id);
         try {
             u.save();
         } catch (ExecutionException e) {
@@ -177,6 +193,13 @@ public class User implements Subject {
             field.set(user, authUser.getId());
         } catch (IllegalAccessException e) {
             e.printStackTrace();
+        }
+
+        if (authUser instanceof FacebookAuthUser) {
+            FacebookAuthUser fbAuthUser = (FacebookAuthUser) authUser;
+            user.birthdate = fbAuthUser.getBirthday();
+            user.gender = fbAuthUser.getGender();
+            user.country = fbAuthUser.getLocale().getCountry();
         }
 
         if (authUser instanceof EmailIdentity) {
@@ -227,7 +250,7 @@ public class User implements Subject {
         final User u = User.findByAuthUserIdentity(knownUser);
         u.lastLogin = new Date();
         try {
-            u.save("password");
+            u.save(PROVIDER_NAME_PASSWORD);
         } catch (ExecutionException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
