@@ -13,6 +13,7 @@ dist
 /.project
 /RUNNING_PID
 /.settings
+.DS_Store
 activator-sbt-echo-akka-shim.sbt
 project/activator-sbt-echo-shim.sbt
 project/activator-sbt-eclipse-shim.sbt
