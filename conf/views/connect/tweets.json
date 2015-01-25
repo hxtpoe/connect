@@ -1,0 +1,8 @@
+{
+    "name": "tweets",
+    "views": {
+        "allTweets": {
+            "map": "function(doc, meta) { if(doc.t === 'tweet') { emit('tweet_' + doc.author + '_' + meta.id , meta.id);  } }"
+        }
+    }
+}
