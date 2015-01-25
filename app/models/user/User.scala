@@ -12,12 +12,5 @@ case class SocialAccounts(
                            )
 
 object User {
-//  implicit val registeredAccountBsonFormat = Macros.handler[RegisteredAccount]
-//  implicit val registeredAccountJsonFormat = Json.format[RegisteredAccount]
-//
-//  implicit val socialAccountsBsonFormat = Macros.handler[SocialAccounts]
-//  implicit val socialAccountsJsonFormat = Json.format[SocialAccounts]
-//
-//  implicit val bsonFormat = Macros.handler[User]
-//  implicit val jsonFormat = Json.format[User]
+
 }

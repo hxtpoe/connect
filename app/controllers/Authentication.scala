@@ -1,18 +1,16 @@
 package controllers
 
-import akka.actor.ActorSystem
 import akka.util.Timeout
+import models.FacebookProfile
 import play.api.Play.current
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
 import play.api.libs.ws.WS
 import play.api.mvc._
 import utils.QueryStringParser
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object Authentication extends Controller {
-  val system: ActorSystem = ActorSystem("authentication")
   implicit val timeout = Timeout.intToTimeout(60 * 1000)
 
   case class AuthData(redirectUri: String, code: String)
@@ -26,12 +24,11 @@ object Authentication extends Controller {
 
   def facebook() = Action.async(parse.json) { implicit request =>
     val clientId = "781458691925425"
-    val clientSecret = "abc"
+    val clientSecret = "842c52c8d8780b38d9545ed88513c786"
     val accessTokenUrl = "https://graph.facebook.com/oauth/access_token"
     val graphApiUrl = "https://graph.facebook.com/me"
     AuthData.fromRequest match {
       case JsSuccess(data, _) =>
-        //        Step 1. Exchange authorization code for access token.
         val accessTokenData =
           WS.url(accessTokenUrl).withQueryString(
             "redirect_uri" -> data.redirectUri,
@@ -45,33 +42,28 @@ object Authentication extends Controller {
 
         val accessToken = accessTokenData.map(_("access_token"))
 
-        //        Step 2. Retrieve information about the current user.
         val profile = accessToken.flatMap { t =>
           WS.url(graphApiUrl)
             .withQueryString("access_token" -> t)
             .get
         }
-//                  .map(_.json.validate[FacebookProfile]).map(_.get)
 
-        //        Step 3. update/merge/create our data and fetch user
-        //        val user = profile.flatMap(userService ? CreateOrMergeUser(_)).mapTo[User]
+        val token = profile map {
+          response => Json.fromJson[FacebookProfile](response.json) map {
+            case js => services.JWTService.generate(js.provider + "_" + js.id)
+          }
+        } map {
+          case s => s.get
+        }
 
-        //        Step 4. Generate JWT and send it back to client
+        token map { t =>
+          Created(Json.obj("token" -> t))
+        }
 
-        Future(
-          println(profile)
-        )
-        Future(Ok(Json.obj("token" -> "xxx")))
-
-      //        token map { t =>
-      //          Created(Json.obj("token" -> t))
-      //        } recover {
-      //          case e: Exception =>
-      //            println(e)
-      //            InternalServerError
-      //        }
       case e: JsError =>
-        Future.successful{BadRequest(JsError.toFlatJson(e))}
+        Future.successful {
+          BadRequest(JsError.toFlatJson(e))
+        }
     }
   }
 }
