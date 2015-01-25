@@ -4,16 +4,17 @@
 
 # Map static resources from the /public folder to the /assets URL path
 
-# CORS!
 OPTIONS        /*all                            controllers.Cors.preflight(all: String)
 
-#public
 POST           /auth/facebook                   controllers.Authentication.facebook
 
 GET            /assets/*file                    controllers.Assets.at(path="/public/", file)
 
+#private
 GET            /api/tweet/:tweetId              controllers.Tweet.find(tweetId: Long)
+#private
 GET            /api/tweet/user/:username        controllers.Tweet.findTweetsByUsername(username: String)
+#private
 POST           /api/tweet                       controllers.Tweet.create
 #DELETE         /api/tweet/:tweetId        controllers.Tweet.delete(tweetId: Long)
 #PUT            /api/tweet/:tweetId        controllers.Tweet.update(tweetId: Long)
