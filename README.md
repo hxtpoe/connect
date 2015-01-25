@@ -3,12 +3,10 @@
 Project
 =======
 
-Based on awesome play-authenticate https://github.com/joscha/play-authenticate I've prepared simple application with:
+I prepared sth by using:
 - Play Framework 2.3.x
 - Couchbase
-- AngularJS
 
- 
 Installation
 =======
 In vagrant directory you've got virtual machine with Couchbase. 
