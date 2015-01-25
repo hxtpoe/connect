@@ -15,7 +15,6 @@ class AuthorizedFilter(actionNames: Seq[String]) extends Filter {
       Future(Forbidden("auth required"))
     }
     else {
-      println("auth not required")
       next(request)}
   }
 
