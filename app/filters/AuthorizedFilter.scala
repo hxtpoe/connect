@@ -11,11 +11,12 @@ object AuthorizedFilter {
 
 class AuthorizedFilter(actionNames: Seq[String]) extends Filter {
   def apply(next: (RequestHeader) => Future[Result])(request: RequestHeader): Future[Result] = {
-    if(!authorizationRequired(request)) {
+    if(authorizationRequired(request)) {
       Future(Forbidden("auth required"))
     }
     else {
-      next(request)}
+      next(request)
+    }
   }
 
   private def authorizationRequired(request: RequestHeader) = {
