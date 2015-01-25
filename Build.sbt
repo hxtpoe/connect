@@ -1,4 +1,4 @@
-import play.PlayJava
+import play.PlayScala
 import sbt._
 
 name := "connect"
@@ -8,34 +8,27 @@ scalaVersion := "2.11.1"
 version := "1.0-SNAPSHOT"
 
 val appDependencies = Seq(
-  "be.objectify"  %% "deadbolt-java"     % "2.3.0-RC1",
-  // Comment the next line for local development of the Play Authentication core:
-  "com.feth"      %% "play-authenticate" % "0.6.2-SNAPSHOT",
-  "com.couchbase.client" % "couchbase-client" % "1.4.2",
-  "com.google.code.gson" % "gson" % "2.2.4",
-  javaCore,
   cache,
-  javaWs
+  ws,
+  "com.google.code.gson" % "gson" % "2.2.4",
+  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.2",
+  "com.typesafe.akka" %% "akka-actor" % "2.3.4",
+  "com.typesafe.akka" %% "akka-slf4j" % "2.3.4",
+  "com.typesafe.akka" %% "akka-testkit" % "2.3.4" % "test",
+  "org.reactivecouchbase" %% "reactivecouchbase-play" % "0.3",
+  "com.nimbusds" % "nimbus-jose-jwt" % "2.22.1"
 )
 
 resolvers ++= Seq(
   "Apache" at "http://repo1.maven.org/maven2/",
   "jBCrypt Repository" at "http://repo1.maven.org/maven2/org/",
-  "play-easymail (release)" at "http://joscha.github.io/play-easymail/repo/releases/",
-  "play-easymail (snapshot)" at "http://joscha.github.io/play-easymail/repo/snapshots/",
-  Resolver.url("Objectify Play Repository", url("http://schaloner.github.io/releases/"))(Resolver.ivyStylePatterns),
-  "play-authenticate (release)" at "http://joscha.github.io/play-authenticate/repo/releases/",
-  "play-authenticate (snapshot)" at "http://joscha.github.io/play-authenticate/repo/snapshots/"
+  "netty" at "http://mvnrepository.com/",
+  "ReactiveCouchbase" at "https://raw.github.com/ReactiveCouchbase/repository/master/releases",
+  "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
 )
 
-//  Uncomment the next line for local development of the Play Authenticate core:
-//lazy val playAuthenticate = project.in(file("modules/play-authenticate")).enablePlugins(PlayJava)
-
 lazy val root = project.in(file("."))
-  .enablePlugins(PlayJava)
+  .enablePlugins(PlayScala)
   .settings(
     libraryDependencies ++= appDependencies
   )
-//  Uncomment the next lines for local development of the Play Authenticate core:
-//.dependsOn(playAuthenticate)
-//.aggregate(playAuthenticate)
