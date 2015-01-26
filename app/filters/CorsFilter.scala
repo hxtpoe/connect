@@ -10,7 +10,7 @@ object CorsFilter extends Filter {
       result => result.withHeaders("Access-Control-Allow-Origin" -> "*",
         "Allow" -> "*",
         "Access-Control-Allow-Methods" -> "POST, GET, OPTIONS, PUT, DELETE",
-        "Access-Control-Allow-Headers" -> "x-requested-with, Content-Type, origin, authorization, accept, client-security-token"
+        "Access-Control-Allow-Headers" -> "x-requested-with, Content-Type, token, origin, authorization, accept, client-security-token"
       )
     }
   }
