@@ -1,0 +1,11 @@
+{
+    "name": "users",
+    "views": {
+        "byFacebook": {
+            "map": "function(doc, meta) { if(doc.provider === 'fb') { emit(doc.id)} }"
+        },
+        "byEmail": {
+            "map": "function(doc, meta) { if(doc.email) { emit( doc.email) }}"
+        }
+    }
+}

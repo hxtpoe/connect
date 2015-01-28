@@ -14,7 +14,7 @@ GET            /assets/*file                    controllers.Assets.at(path="/pub
 GET            /api/tweet/:tweetId              controllers.Tweet.find(tweetId: Long)
 #private
 GET            /api/tweet/user/:username        controllers.Tweet.findTweetsByUsername(username: String)
-#private
+
 POST           /api/tweet                       controllers.Tweet.create
 #DELETE         /api/tweet/:tweetId        controllers.Tweet.delete(tweetId: Long)
 #PUT            /api/tweet/:tweetId        controllers.Tweet.update(tweetId: Long)

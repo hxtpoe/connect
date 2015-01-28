@@ -10,7 +10,7 @@ object Tweet extends Controller {
   def findTweetsByUsername(username: String) = Action.async { request =>
     TweetModel.findAllTweetsByUsername(username) flatMap {
       list => Future {
-        Ok(Json.obj("rows" -> Json.toJson(list)))
+        Ok(Json.toJson(list))
       }
     }
   }
@@ -38,8 +38,9 @@ object Tweet extends Controller {
     TweetModel.find(id).map {
       t =>
         t match {
-          case None => NotFound("Not found tweet id " + id)
-          case _ => Ok(Json.toJson(t))
+          case None => NotFound("Not found tweet " + id)
+          case _ =>
+            Ok(Json.toJson(t))
         }
     }
   }

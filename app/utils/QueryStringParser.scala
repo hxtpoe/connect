@@ -12,8 +12,7 @@ object QueryStringParser extends RegexParsers {
   val pairList: Parser[Seq[(String, String)]] = repsep(pair, "&")
 
   val queryString: Parser[Map[String, String]] = pairList ^^ {
-    case pairs => {println(pairs.toMap)
-      pairs.toMap}
+    case pairs => pairs.toMap
   }
 
   def parse(s: String): ParseResult[Map[String, String]] = {

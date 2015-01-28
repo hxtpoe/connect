@@ -8,7 +8,9 @@ import play.api.libs.ws.WS
 import play.api.mvc._
 import utils.QueryStringParser
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
+import scala.util.{Try, Failure, Success}
+import scala.concurrent.duration._
 
 object Authentication extends Controller {
   implicit val timeout = Timeout.intToTimeout(60 * 1000)
@@ -27,6 +29,7 @@ object Authentication extends Controller {
     val clientSecret = "842c52c8d8780b38d9545ed88513c786"
     val accessTokenUrl = "https://graph.facebook.com/oauth/access_token"
     val graphApiUrl = "https://graph.facebook.com/me"
+
     AuthData.fromRequest match {
       case JsSuccess(data, _) =>
         val accessTokenData =
@@ -46,24 +49,14 @@ object Authentication extends Controller {
           WS.url(graphApiUrl)
             .withQueryString("access_token" -> t)
             .get
-        }
+        }.map(_.json.validate[FacebookProfile]).map(_.get)
 
-        val token = profile map {
-          response => Json.fromJson[FacebookProfile](response.json) map {
-            case js => services.JWTService.generate(js.provider + "_" + js.id)
-          }
-        } map {
-          case s => s.get
-        }
+        val token = profile.map(FacebookProfile.createOrMerge(_))
 
-        token map { t =>
-          Created(Json.obj("token" -> t))
-        }
+        token map (x => Ok(Json.obj("token" -> services.JWTService.generate(x.toString))))
 
       case e: JsError =>
-        Future.successful {
-          BadRequest(JsError.toFlatJson(e))
-        }
+        Future(BadRequest(JsError.toFlatJson(e)))
     }
   }
 }
