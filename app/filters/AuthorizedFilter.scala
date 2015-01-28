@@ -12,13 +12,12 @@ object AuthorizedFilter {
 
 class AuthorizedFilter(actionNames: Seq[String]) extends Filter {
   def apply(next: (RequestHeader) => Future[Result])(request: RequestHeader): Future[Result] = {
-    if(authorizationRequired(request)) {
+    if (authorizationRequired(request)) {
       val token = request.headers.get("token").getOrElse(false)
       val validator = new MACVerifier("xx")
 
       token match {
-        case token : String => {
-          println(token)
+        case token: String => {
           next(request)
         }
         case _ => Future(Forbidden("token required"))

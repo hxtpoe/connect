@@ -7,13 +7,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import org.reactivecouchbase.client.{OpResult, Counters}
 import com.couchbase.client.protocol.views.{ComplexKey, Stale, Query}
 
-case class Tweet(id: Option[String], message: Option[String], author: String, subject: String, val t: String = "tweet") {
+case class Tweet(id: Option[String], message: Option[String], author: String) {
   def save(): Future[OpResult] = Tweet.save(this)
   def remove(): Future[OpResult] = Tweet.remove(this)
 }
 
 object Tweet extends Counters {
-  implicit val bucket = cb.bucket
+  implicit val bucket = cb.bucketOfTweets
   implicit val fmt: Format[Tweet] = Json.format[Tweet]
 
   def find(id: Long): Future[Option[Tweet]] = {
@@ -33,15 +33,18 @@ object Tweet extends Counters {
   }
 
   def increment(): Future[Int] = {
-    incrAndGet("tweets", 1)
+    incrAndGet("tweets_counter", 1)
   }
 
-  def create(id: Int, tweet: Tweet): Future[OpResult] = {
-    bucket.set[JsValue]("tweet:" + id.toString, Json.toJson(tweet))
+  def create(id: String, tweet: Tweet): Future[OpResult] = {
+    val timestamp: Long = System.currentTimeMillis / 1000
+    val t: String = "tweet"
+
+    bucket.set[JsValue]("tweet:" + id, Json.obj("author" -> tweet.author, "message" -> tweet.message) ++ Json.obj("timestamp" -> timestamp, "t" -> t))
   }
 
   def findAllTweetsByUsername(username: String): Future[List[Tweet]] = {
-    bucket.find[Tweet]("tweets", "allTweets")(new Query().setRangeStart(ComplexKey.of("tweet_"+username)).setRangeEnd(ComplexKey.of("tweet_"+username + "\\u02ad")).setIncludeDocs(true).setLimit(10000).setStale(Stale.FALSE))
+    bucket.find[Tweet]("tweets", "allTweets")(new Query().setRangeStart(ComplexKey.of("tweet_"+username + "\\u02ad")).setRangeEnd(ComplexKey.of("tweet_"+username)).setDescending(true).setIncludeDocs(true).setLimit(10000).setStale(Stale.FALSE))
   }
 
   def findAll(): Future[List[Tweet]] = {
