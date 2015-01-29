@@ -6,7 +6,6 @@ import com.nimbusds.jose._
 import com.nimbusds.jose.crypto._
 import com.nimbusds.jwt._
 
-
 class JWTService extends Actor {
   import JWTService._
 

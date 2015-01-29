@@ -27,6 +27,7 @@ object Authentication extends Controller {
     val clientSecret = "842c52c8d8780b38d9545ed88513c786"
     val accessTokenUrl = "https://graph.facebook.com/oauth/access_token"
     val graphApiUrl = "https://graph.facebook.com/me"
+
     AuthData.fromRequest match {
       case JsSuccess(data, _) =>
         val accessTokenData =

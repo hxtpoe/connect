@@ -41,7 +41,7 @@ object Tweet extends Counters {
   }
 
   def findAllTweetsByUsername(username: String): Future[List[Tweet]] = {
-    bucket.find[Tweet]("tweets", "allTweets")(new Query().setRangeStart(ComplexKey.of("tweet_"+username)).setRangeEnd(ComplexKey.of("tweet_"+username + "\\u02ad")).setIncludeDocs(true).setLimit(100).setStale(Stale.FALSE))
+    bucket.find[Tweet]("tweets", "allTweets")(new Query().setRangeStart(ComplexKey.of("tweet_"+username)).setRangeEnd(ComplexKey.of("tweet_"+username + "\\u02ad")).setIncludeDocs(true).setLimit(10000).setStale(Stale.FALSE))
   }
 
   def findAll(): Future[List[Tweet]] = {
