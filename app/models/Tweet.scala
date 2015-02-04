@@ -16,8 +16,8 @@ object Tweet extends Counters {
   implicit val bucket = cb.bucketOfTweets
   implicit val fmt: Format[Tweet] = Json.format[Tweet]
 
-  def find(id: Long): Future[Option[Tweet]] = {
-    bucket.get("tweet:" + id.toString)
+  def find(id: String): Future[Option[Tweet]] = {
+    bucket.get("tweet:" + id)
   }
 
   def save(tweet: Tweet): Future[OpResult] = {
@@ -44,7 +44,7 @@ object Tweet extends Counters {
   }
 
   def findAllTweetsByUsername(username: String): Future[List[Tweet]] = {
-    bucket.find[Tweet]("tweets", "allTweets")(new Query().setRangeStart(ComplexKey.of("tweet_"+username + "\\u02ad")).setRangeEnd(ComplexKey.of("tweet_"+username)).setDescending(true).setIncludeDocs(true).setLimit(10000).setStale(Stale.FALSE))
+    bucket.find[Tweet]("tweets", "allTweets")(new Query().setRangeStart(ComplexKey.of("tweet_"+username + "\\u02ad")).setRangeEnd(ComplexKey.of("tweet_"+username)).setDescending(true).setIncludeDocs(true).setLimit(10000).setInclusiveEnd(true).setStale(Stale.UPDATE_AFTER))
   }
 
   def findAll(): Future[List[Tweet]] = {
