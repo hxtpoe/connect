@@ -10,9 +10,9 @@ POST           /auth/facebook                   controllers.Authentication.faceb
 
 GET            /assets/*file                    controllers.Assets.at(path="/public/", file)
 
-#private
-GET            /api/tweet/:tweetId              controllers.Tweet.find(tweetId: Long)
-#private
+
+GET            /api/tweet/:tweetId              controllers.Tweet.find(tweetId: String)
+
 GET            /api/tweet/user/:username        controllers.Tweet.findTweetsByUsername(username: String)
 
 POST           /api/tweet                       controllers.Tweet.create

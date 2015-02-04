@@ -26,7 +26,7 @@ object Tweet extends Controller {
         json => {
           TweetModel.increment.map {
             case i: Int => {
-              TweetModel.create(i, json)
+              TweetModel.create(i.toString, json)
               Ok(Json.obj("status" -> "OK", "message" -> ("tweet saved." + i.toString()))).withHeaders(LOCATION -> ("tweet id: " + i))
             }
           }
@@ -34,7 +34,7 @@ object Tweet extends Controller {
       )
   }
 
-  def find(id: Long) = Action.async {
+  def find(id: String) = Action.async {
     TweetModel.find(id).map {
       t =>
         t match {
