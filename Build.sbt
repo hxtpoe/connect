@@ -16,7 +16,8 @@ val appDependencies = Seq(
   "com.typesafe.akka" %% "akka-slf4j" % "2.3.4",
   "com.typesafe.akka" %% "akka-testkit" % "2.3.4" % "test",
   "org.reactivecouchbase" %% "reactivecouchbase-play" % "0.3",
-  "com.nimbusds" % "nimbus-jose-jwt" % "2.22.1"
+  "com.nimbusds" % "nimbus-jose-jwt" % "2.22.1",
+  "com.wordnik" %% "swagger-play2" % "1.3.12"
 )
 
 resolvers ++= Seq(

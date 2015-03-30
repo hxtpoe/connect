@@ -31,8 +31,16 @@ object User {
   }
 
   def findUserIdByFacebookId(fbId: String): Future[Option[String]] = {
-    bucket.rawSearch("users", "byFacebook")(new Query().setRangeStart(ComplexKey.of(fbId)).setRangeEnd(ComplexKey.of(fbId + "\\u02ad")).setIncludeDocs(true).setLimit(1).setInclusiveEnd(true).setStale(Stale.FALSE)).headOption.map {
-      case Some(RawRow(_,id,_,_)) => id
+    bucket.rawSearch("users", "byFacebook")(
+      new Query()
+        .setRangeStart(ComplexKey.of(fbId))
+        .setRangeEnd(ComplexKey.of(fbId + "\\u02ad"))
+        .setIncludeDocs(true)
+        .setLimit(1)
+        .setInclusiveEnd(true)
+        .setStale(Stale.FALSE)
+    ).headOption.map {
+      case Some(RawRow(_, id, _, _)) => id
       case None => None
     }
   }
