@@ -4,6 +4,9 @@
 
 # Map static resources from the /public folder to the /assets URL path
 
+GET            /api-docs                        controllers.ApiHelpController.getResources
+GET            /api-docs/tweets                 controllers.ApiHelpController.getResource(path = "/tweets")
+
 OPTIONS        /*all                            controllers.Cors.preflight(all: String)
 
 POST           /auth/facebook                   controllers.Authentication.facebook

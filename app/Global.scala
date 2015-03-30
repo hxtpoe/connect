@@ -8,6 +8,10 @@ object Global extends GlobalSettings {
     CorsFilter(filters.AuthorizedFilter("private")(action))
   }
 
+  override def onStart(app: Application): Unit = {
+    println("App staring...")
+  }
+
   override def onStop(app: Application) {
     cb.close
   }
