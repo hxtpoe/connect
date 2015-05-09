@@ -1,7 +1,7 @@
 package models
 
 import datasources.{couchbase => cb}
-import models.Tweet._
+import models.Post._
 import play.api.libs.json._
 import scala.concurrent.Await
 import scala.concurrent.duration._

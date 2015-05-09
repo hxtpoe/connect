@@ -2,7 +2,7 @@ package services
 
 import models.{FacebookProfile}
 import datasources.{couchbase => cb}
-import models.Tweet._
+import models.Post._
 import org.reactivecouchbase.client.OpResult
 import play.api.Logger
 import play.api.libs.json.{Json, JsValue, JsObject}
