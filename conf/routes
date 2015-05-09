@@ -13,10 +13,10 @@ POST           /auth/facebook                   controllers.Authentication.faceb
 
 GET            /assets/*file                    controllers.Assets.at(path="/public/", file)
 
-GET            /api/tweet/:tweetId              controllers.Tweet.find(tweetId: String)
+GET            /api/post/:postId              controllers.PostController.find(postId: String)
 
-GET            /api/tweet/user/:username        controllers.Tweet.findTweetsByUsername(username: String)
+GET            /api/post/user/:username        controllers.PostController.findByUsername(username: String)
 
-POST           /api/tweet                       controllers.Tweet.create
-#DELETE         /api/tweet/:tweetId        controllers.Tweet.delete(tweetId: Long)
-#PUT            /api/tweet/:tweetId        controllers.Tweet.update(tweetId: Long)
+POST           /api/post                       controllers.PostController.create
+#DELETE         /api/post/:postId        controllers.Post.delete(postId: Long)
+#PUT            /api/post/:postId        controllers.Post.update(postId: Long)

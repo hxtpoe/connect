@@ -5,7 +5,7 @@ import org.reactivecouchbase.ReactiveCouchbaseDriver
 object couchbase {
   implicit val driver = ReactiveCouchbaseDriver()
   implicit val bucketOfUsers = driver.bucket("connect_users")
-  implicit val bucketOfTweets = driver.bucket("connect_tweets")
+  implicit val bucketOfPosts = driver.bucket("connect_posts")
 
   def close = {
     driver.shutdown()
