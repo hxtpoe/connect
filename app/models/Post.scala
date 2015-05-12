@@ -9,6 +9,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 case class Post(id: Option[String], message: String, author: String) {
   def save(): Future[OpResult] = Post.save(this)
+
   def remove(): Future[OpResult] = Post.remove(this)
 }
 

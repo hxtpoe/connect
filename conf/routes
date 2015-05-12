@@ -4,16 +4,16 @@
 
 # Map static resources from the /public folder to the /assets URL path
 
-GET            /api-docs                        controllers.ApiHelpController.getResources
-GET            /api-docs/tweets                 controllers.ApiHelpController.getResource(path = "/tweets")
+GET            /api-docs                       controllers.ApiHelpController.getResources
+GET            /api-docs/posts                 controllers.ApiHelpController.getResource(path = "/posts")
 
-OPTIONS        /*all                            controllers.Cors.preflight(all: String)
+OPTIONS        /*all                           controllers.Cors.preflight(all: String)
 
-POST           /auth/facebook                   controllers.Authentication.facebook
+POST           /auth/facebook                  controllers.Authentication.facebook
 
-GET            /assets/*file                    controllers.Assets.at(path="/public/", file)
+GET            /assets/*file                   controllers.Assets.at(path="/public/", file)
 
-GET            /api/post/:postId              controllers.PostController.find(postId: String)
+GET            /api/post/:postId               controllers.PostController.find(postId: String)
 
 GET            /api/post/user/:username        controllers.PostController.findByUsername(username: String)
 

@@ -24,7 +24,7 @@ object PostController extends Controller {
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "page", value = "page offset", required = false, dataType = "Int", paramType = "query")))
   def findByUsername(
-                            @ApiParam(value = "username of the user to fetch") @PathParam("username") username: String) =
+                      @ApiParam(value = "username of the user to fetch") @PathParam("username") username: String) =
     Action.async { request =>
       Post.findAllByUsername(username) flatMap {
         list => Future {
