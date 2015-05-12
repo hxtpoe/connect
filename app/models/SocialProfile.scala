@@ -1,11 +1,12 @@
 package models
 
 import datasources.{couchbase => cb}
-import models.Post._
+import org.reactivecouchbase.client.Counters
 import play.api.libs.json._
+
 import scala.concurrent.Await
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 case class FacebookProfile(id: String,
                            email: String,
@@ -16,7 +17,7 @@ case class FacebookProfile(id: String,
                            locale: String
                             )
 
-object FacebookProfile {
+object FacebookProfile extends Counters {
   implicit val fpFormat: Format[FacebookProfile] = Json.format[FacebookProfile]
   implicit val bucket = cb.bucketOfUsers
 
@@ -30,9 +31,13 @@ object FacebookProfile {
       case None => {
         val newIdenfifier = increment()
         bucket.set[JsValue](
-          "user:" + newIdenfifier.toString, Json.toJson(profile).as[JsObject] ++
-            Json.obj("provider" -> "fb", "type" -> "user", "created_at" -> getTimestamp()))
-        "user:" + newIdenfifier
+          newIdenfifier.toString, Json.toJson(profile).as[JsObject] ++
+            Json.obj(
+              "provider" -> "fb",
+              "type" -> "user",
+              "created_at" -> getTimestamp()
+            ))
+        newIdenfifier.toString
       }
     }
   }

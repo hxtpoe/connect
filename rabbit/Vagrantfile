@@ -1,0 +1,26 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+#	config.vm.hostname = "rabbitmq"
+	config.vm.box = "connect_rabbit_box"
+	config.vm.box_url = "https://oss-binaries.phusionpassenger.com/vagrant/boxes/latest/ubuntu-14.04-amd64-vbox.box"
+
+	config.vm.provision :shell do |shell|
+          shell.inline = "puppet module install garethr-erlang --force --modulepath '/vagrant/puppet/modules'"
+        end
+
+        config.vm.network :private_network, ip: "192.168.10.11"
+	config.vm.network :forwarded_port, guest: 5672, host: 5672
+	config.vm.network :forwarded_port, guest: 15672, host: 15672
+
+	config.vm.provision :puppet do |puppet|
+	  puppet.manifests_path = "puppet/manifests"
+          puppet.module_path = "puppet/modules"
+        end
+  
+	config.vm.provider :virtualbox do |v|
+		v.name = "rabbitmq"
+	end
+
+end

@@ -1,0 +1,67 @@
+[
+  {
+    "_id": "1",
+    "id": "100009826353506",
+    "email": "pltbayh_alisonwitz_1432820588@tfbnw.net",
+    "first_name": "Donna Amihbfcecejf",
+    "gender": "male",
+    "last_name": "Alisonwitz",
+    "link": "https://www.facebook.com/app_scoped_user_id/100009826353506/",
+    "locale": "pl_PL",
+    "provider": "fb",
+    "type": "user",
+    "created_at": 143282014013
+  },
+  {
+    "_id": "2",
+    "id": "100009682568778",
+    "email": "jqbgvmx_changstein_1432820593@tfbnw.net",
+    "first_name": "Mark Amifhbefhggh",
+    "gender": "male",
+    "last_name": "Changstein",
+    "link": "https://www.facebook.com/app_scoped_user_id/100009682568778/",
+    "locale": "pl_PL",
+    "provider": "fb",
+    "type": "user",
+    "created_at": 143282014013
+  },
+  {
+    "_id": "3",
+    "id": "100009579673125",
+    "email": "kcjzsdy_martinazziberg_1432820601@tfbnw.net",
+    "first_name": "Karen Amiegifgcabe",
+    "gender": "male",
+    "last_name": "Martinazziberg",
+    "link": "https://www.facebook.com/app_scoped_user_id/100009579673125/",
+    "locale": "pl_PL",
+    "provider": "fb",
+    "type": "user",
+    "created_at": 143282014013
+  },
+  {
+    "_id": "4",
+    "id": "100009522885765",
+    "email": "pqfectk_changberg_1432820581@tfbnw.net",
+    "first_name": "Maria Amiebbhhegfe",
+    "gender": "male",
+    "last_name": "Changberg",
+    "link": "https://www.facebook.com/app_scoped_user_id/100009522885765/",
+    "locale": "pl_PL",
+    "provider": "fb",
+    "type": "user",
+    "created_at": 143282014013
+  },
+  {
+    "_id": "5",
+    "id": "1374270472898417",
+    "email": "nzjdooi_panditberg_1426452351@tfbnw.net",
+    "first_name": "Betty Amidfdcakgi",
+    "gender": "male",
+    "last_name": "Panditberg",
+    "link": "https://www.facebook.com/app_scoped_user_id/1374270472898417/",
+    "locale": "pl_PL",
+    "provider": "fb",
+    "type": "user",
+    "created_at": 143282014013
+  }
+]

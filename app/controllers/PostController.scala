@@ -8,8 +8,26 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import javax.ws.rs.PathParam
 
-@Api(value = "/posts", description = "Operations about posts")
+@Api(value = "/posts")
 object PostController extends Controller {
+
+  def backendTimeline(userId: Int) =
+    Action.async { request =>
+      Post.getAndCache(userId.toString, (1 to 200).map(_.toString).toList) flatMap {
+        list => Future {
+          Ok(Json.toJson(list))
+        }
+      }
+    }
+
+  def timeline(userId: Int) =
+    Action.async { request =>
+      Post.getCached(userId.toString) flatMap {
+        list => Future {
+          Ok(Json.toJson(list))
+        }
+      }
+    }
 
   @ApiOperation(
     nickname = "findByUsername",
@@ -24,7 +42,7 @@ object PostController extends Controller {
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "page", value = "page offset", required = false, dataType = "Int", paramType = "query")))
   def findByUsername(
-                            @ApiParam(value = "username of the user to fetch") @PathParam("username") username: String) =
+                      @ApiParam(value = "username of the user to fetch") @PathParam("username") username: String) =
     Action.async { request =>
       Post.findAllByUsername(username) flatMap {
         list => Future {
@@ -41,23 +59,22 @@ object PostController extends Controller {
     request =>
       val someJson = request.body.validate[Post]
 
-      someJson.fold(
-        errors => {
-          Future(BadRequest(Json.obj("status" -> "OK", "message" -> JsError.toFlatJson(errors))))
-        },
-        json => {
-          Post.increment.map {
-            case i: Int => {
-              Post.create(i.toString, json)
-              Ok(Json.obj("status" -> "OK", "message" -> ("tweet saved." + i.toString()))).withHeaders(LOCATION -> ("tweet id: " + i))
-            }
+      Future {
+        someJson.fold(
+          errors => {
+            BadRequest(Json.obj("status" -> "OK", "message" -> JsError.toFlatJson(errors)))
+          },
+          json => {
+            val uuid = java.util.UUID.randomUUID().toString()
+            Post.create(uuid, json)
+            Ok(Json.obj("status" -> JsString("created: " + uuid.toString()))).withHeaders(LOCATION -> ("id: " + uuid))
           }
-        }
-      )
+        )
+      }
   }
 
-  @ApiOperation(value = "find tweet by ID",
-    notes = "returns a tweet based on ID",
+  @ApiOperation(value = "find post by ID",
+    notes = "returns the post based on ID",
     response = classOf[Post],
     produces = "application/json",
     httpMethod = "GET"
