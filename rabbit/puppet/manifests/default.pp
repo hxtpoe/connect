@@ -1,4 +1,5 @@
 include 'erlang'
+include 'apt'
 
 package { 'erlang-base':
   ensure => 'latest',
