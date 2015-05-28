@@ -7,16 +7,16 @@ import scala.concurrent.Future
 import com.couchbase.client.protocol.views.{ComplexKey, Stale, Query}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-case class Followee(followeeId: String) {}
+case class Follower(followerId: String) {}
 
-object Followee {
+object Follower {
   implicit val bucket = couchbase.bucketOfUsers
-  implicit val followeeFormatter: Format[Followee] = Json.format[Followee]
-  val view = (if (Play.application().isDev) "dev_") + "followees"
+  implicit val followerFormatter: Format[Follower] = Json.format[Follower]
+  val view = (if (Play.application().isDev) "dev_") + "followers"
 
-  def followees(userId: String, skip: Option[Int]): Future[List[Followee]] = {
+  def followers(userId: String, skip: Option[Int]): Future[List[Follower]] = {
 
-    bucket.find[Followee](view, "all")(
+    bucket.find[Follower](view, "all")(
       new Query()
         .setRangeStart(ComplexKey.of(userId))
         .setRangeEnd(ComplexKey.of(userId + "\\u02ad"))

@@ -6,7 +6,7 @@
 
 GET            /api-docs                                       controllers.ApiHelpController.getResources
 GET            /api-docs/posts                                 controllers.ApiHelpController.getResource(path = "/posts")
-GET            /api-docs/followees                             controllers.ApiHelpController.getResource(path = "/followees")
+GET            /api-docs/followers                             controllers.ApiHelpController.getResource(path = "/followers")
 
 OPTIONS        /*all                                           controllers.Cors.preflight(all: String)
 
@@ -15,6 +15,7 @@ POST           /auth/facebook                                  controllers.Authe
 GET            /assets/*file                                   controllers.Assets.at(path="/public/", file)
 
 GET            /api/user/:userId/followees                     controllers.FollowController.getFollowees(userId: String, skip: Option[Int])
+GET            /api/user/:userId/followers                     controllers.FollowController.getFollowers(userId: String, skip: Option[Int])
 PUT            /api/user/:followerId/follow/:followeeId        controllers.FollowController.follow(followerId: Int, followeeId: Int)
 DELETE         /api/user/:followerId/follow/:followeeId        controllers.FollowController.unfollow(followerId: Int, followeeId: Int)
 
