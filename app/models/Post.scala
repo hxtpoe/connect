@@ -20,7 +20,7 @@ object Post extends Counters {
   val counterKey = "posts_counter"
 
   def find(id: String): Future[Option[Post]] = {
-    bucket.get("post:" + id)
+    bucket.get(id)
   }
 
   def save(tweet: Post): Future[OpResult] = {
@@ -43,7 +43,7 @@ object Post extends Counters {
     val timestamp: Long = System.currentTimeMillis / 1000
     val post: String = "post"
 
-    bucket.set[JsValue]("post:" + id,
+    bucket.set[JsValue](id,
       Json.obj(
         "author" -> tweet.author,
         "message" -> tweet.message
@@ -55,8 +55,8 @@ object Post extends Counters {
   def findAllByUsername(username: String): Future[List[Post]] = {
     bucket.find[Post]("posts", "allPosts")(
       new Query()
-        .setRangeStart(ComplexKey.of("post_" + username + "\\u02ad"))
-        .setRangeEnd(ComplexKey.of("post_" + username))
+        .setRangeStart(ComplexKey.of(username + "\\u02ad"))
+        .setRangeEnd(ComplexKey.of(username))
         .setDescending(true)
         .setIncludeDocs(true)
         .setLimit(25)
@@ -70,5 +70,11 @@ object Post extends Counters {
         .setIncludeDocs(true)
         .setLimit(25)
         .setStale(Stale.FALSE))
+  }
+
+  def init() = {
+    bucket.get(counterKey) onSuccess {
+      case None => bucket.set[Int](counterKey, 0)
+    }
   }
 }

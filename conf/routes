@@ -4,19 +4,24 @@
 
 # Map static resources from the /public folder to the /assets URL path
 
-GET            /api-docs                       controllers.ApiHelpController.getResources
-GET            /api-docs/posts                 controllers.ApiHelpController.getResource(path = "/posts")
+GET            /api-docs                                     controllers.ApiHelpController.getResources
+GET            /api-docs/posts                               controllers.ApiHelpController.getResource(path = "/posts")
+GET            /api-docs/followers                           controllers.ApiHelpController.getResource(path = "/followers")
 
-OPTIONS        /*all                           controllers.Cors.preflight(all: String)
+OPTIONS        /*all                                         controllers.Cors.preflight(all: String)
 
-POST           /auth/facebook                  controllers.Authentication.facebook
+POST           /auth/facebook                                controllers.Authentication.facebook
 
-GET            /assets/*file                   controllers.Assets.at(path="/public/", file)
+GET            /assets/*file                                 controllers.Assets.at(path="/public/", file)
 
-GET            /api/post/:postId               controllers.PostController.find(postId: String)
+GET            /api/user/:userId/followees                   controllers.FollowController.getFollowees(userId: String, skip: Option[Int])
+GET            /api/user/:userId/follow/:followeeId          controllers.FollowController.follow(userId: String, followeeId: String)
+GET            /api/user/:userId/unfollow/:followeeId        controllers.FollowController.unfollow(userId: String, followeeId: String)
 
-GET            /api/post/user/:username        controllers.PostController.findByUsername(username: String)
+GET            /api/post/:postId                             controllers.PostController.find(postId: String)
 
-POST           /api/post                       controllers.PostController.create
+GET            /api/post/user/:username                      controllers.PostController.findByUsername(username: String)
+
+POST           /api/post                                     controllers.PostController.create
 #DELETE         /api/post/:postId        controllers.Post.delete(postId: Long)
 #PUT            /api/post/:postId        controllers.Post.update(postId: Long)

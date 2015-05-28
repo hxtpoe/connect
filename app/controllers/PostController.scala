@@ -8,7 +8,7 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import javax.ws.rs.PathParam
 
-@Api(value = "/posts", description = "Operations about posts")
+@Api(value = "/posts", description = "of user")
 object PostController extends Controller {
 
   @ApiOperation(

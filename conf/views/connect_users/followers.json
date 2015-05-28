@@ -1,0 +1,11 @@
+{
+    "name": "followers",
+    "views": {
+        "all": {
+            "map": "function(doc, meta) { if(doc.t === 'fp') { emit(doc.followerId + '_' + doc.followeeId)} }"
+        },
+        "count": {
+            "map": "function(doc, meta) { if(doc.t === 'fp') { emit(doc.followerId)} }"
+        }
+    }
+}

@@ -26,9 +26,9 @@ object Sender {
   def startSending() = {
     sendingChannel.queueDeclare(Config.RABBITMQ_QUEUE, false, false, false, null)
 
-    for (a <- 1 until 50) {
+    for (a <- 1 until 3) {
       Akka.system.scheduler.schedule(FiniteDuration(1, TimeUnit.MILLISECONDS)
-        , FiniteDuration(1, TimeUnit.MILLISECONDS)
+        , FiniteDuration(100, TimeUnit.MILLISECONDS)
         , Akka.system.actorOf(
           Props(new SendingActor(channel = sendingChannel, queue = Config.RABBITMQ_QUEUE)))
         , "MSG to Queue " + a)
