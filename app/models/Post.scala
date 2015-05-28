@@ -1,5 +1,6 @@
 package models
 
+import play.Play
 import play.api.libs.json._
 import datasources.{couchbase => cb}
 import scala.concurrent.{Future}
@@ -18,6 +19,7 @@ object Post extends Counters {
   implicit val fmt: Format[Post] = Json.format[Post]
 
   val counterKey = "posts_counter"
+  val view = (if (Play.application().isDev) "dev_") + "posts"
 
   def find(id: String): Future[Option[Post]] = {
     bucket.get(id)
@@ -53,7 +55,7 @@ object Post extends Counters {
   }
 
   def findAllByUsername(username: String): Future[List[Post]] = {
-    bucket.find[Post]("posts", "allPosts")(
+    bucket.find[Post](view, "allPosts")(
       new Query()
         .setRangeStart(ComplexKey.of(username + "\\u02ad"))
         .setRangeEnd(ComplexKey.of(username))
@@ -65,7 +67,7 @@ object Post extends Counters {
   }
 
   def findAll(): Future[List[Post]] = {
-    bucket.find[Post]("posts", "allPosts")(
+    bucket.find[Post](view, "allPosts")(
       new Query()
         .setIncludeDocs(true)
         .setLimit(25)

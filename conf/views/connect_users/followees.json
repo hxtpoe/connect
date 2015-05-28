@@ -1,5 +1,5 @@
 {
-    "name": "followers",
+    "name": "followees",
     "views": {
         "all": {
             "map": "function(doc, meta) { if(doc.t === 'fp') { emit(doc.followerId + '_' + doc.followeeId)} }"

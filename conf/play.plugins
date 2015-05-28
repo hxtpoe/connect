@@ -1,3 +1,4 @@
 400:org.reactivecouchbase.play.plugins.CouchbasePlugin
 600:org.reactivecouchbase.play.plugins.CouchbaseEvolutionsPlugin
+700:org.reactivecouchbase.play.plugins.CouchbaseFixturesPlugin
 

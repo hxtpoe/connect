@@ -1,35 +1,31 @@
 package controllers
 
-import javax.ws.rs.PathParam
+import javax.ws.rs.{QueryParam, PathParam}
 
 import com.wordnik.swagger.annotations._
-import models.{User, FollowPair}
+import models.{Followee, FollowPair}
 import play.api.libs.json._
 import play.api.mvc._
 import scala.concurrent.ExecutionContext.Implicits.global
 
-@Api(value = "/followers", description = "of user")
+@Api(value = "/followees", description = "of user")
 object FollowController extends Controller {
 
   @ApiOperation(
     nickname = "getFollowees",
     value = "get followees",
-    response = classOf[User],
-    responseContainer = "List",
     produces = "application/json",
     httpMethod = "GET")
   @ApiResponses(
     Array(
       new ApiResponse(code = 200, message = "Success")
     ))
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "page", value = "page offset", required = false, dataType = "Int", paramType = "query")))
   def getFollowees(
                     @ApiParam(value = "userId") @PathParam("userId") userId: String,
-                    @ApiParam(value = "skip") @PathParam("skip") skip: Option[Int]) =
+                    @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) =
     Action.async {
       for {
-        followers <- FollowPair.getFollowers(userId.toString, skip)
+        followers <- Followee.getFollowees(userId.toString, skip)
         counter <- FollowPair.countFollowers(userId.toString)
       } yield {
         Ok(Json.obj(
@@ -41,36 +37,38 @@ object FollowController extends Controller {
 
   @ApiOperation(
     nickname = "follow",
-    value = "add follower",
+    value = "add followee",
     responseContainer = "List",
-    httpMethod = "POST")
+    httpMethod = "PUT")
   @ApiResponses(
     Array(
-      new ApiResponse(code = 201, message = "Created")
+      new ApiResponse(code = 201, message = "Created"),
+      new ApiResponse(code = 400, message = "Bad request")
     ))
   def follow(
-              @ApiParam(value = "followerId") @PathParam("followerId") followerId: String,
-              @ApiParam(value = "followeeId") @PathParam("userToFollowId") followeeId: String) =
+              @ApiParam(value = "followerId") @PathParam("followerId") followerId: Int,
+              @ApiParam(value = "followeeId") @PathParam("followeeId") followeeId: Int) =
     Action {
       request =>
-        FollowPair.follow(followerId, followeeId)
+        FollowPair.follow(followerId.toString, followeeId.toString)
         Ok("added")
     }
 
   @ApiOperation(
-    nickname = "follow",
-    value = "remove follower",
+    nickname = "unfollow",
+    value = "remove followee",
     produces = "application/json",
-    httpMethod = "POST")
+    httpMethod = "DELETE")
   @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Success")
+    new ApiResponse(code = 200, message = "Success"),
+    new ApiResponse(code = 400, message = "Bad request")
   ))
   def unfollow(
-                @ApiParam(value = "followerId") @PathParam("followerId") followerId: String,
-                @ApiParam(value = "followeeId") @PathParam("userToFollowId") followeeId: String) =
+                @ApiParam(value = "followerId") @PathParam("followerId") followerId: Int,
+                @ApiParam(value = "followeeId") @PathParam("followeeId") followeeId: Int) =
     Action {
       request =>
-        FollowPair.unfollow(followerId, followeeId)
+        FollowPair.unfollow(followerId.toString, followeeId.toString)
         Ok("unfollowed")
     }
 
