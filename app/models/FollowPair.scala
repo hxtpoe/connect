@@ -2,19 +2,22 @@ package models
 
 import java.util.UUID
 
-import play.api.libs.json._
 import datasources.couchbase
-import scala.concurrent.Future
 import org.reactivecouchbase.client.Counters
-import com.couchbase.client.protocol.views.{ComplexKey, Stale, Query}
-import scala.concurrent.ExecutionContext.Implicits.global
+import org.reactivecouchbase.play.PlayCouchbase
+import play.Play
+import play.api.libs.json._
+import scala.concurrent.Future
+import play.api.Play.current
 
 case class FollowPair(followerId: String, followeeId: String, timestamp: Long, t: String = "fp") {}
 
 object FollowPair extends Counters {
   implicit val bucket = couchbase.bucketOfUsers
   implicit val followPairFormatter: Format[FollowPair] = Json.format[FollowPair]
+  implicit val ec = PlayCouchbase.couchbaseExecutor
 
+  val view = (if (Play.application().isDev) "dev_" else "") + "followers"
 
   def countFollowers(userId: String): Future[Option[Int]] = {
     bucket.get[Int](userId + "_follows")

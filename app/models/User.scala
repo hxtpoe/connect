@@ -18,8 +18,14 @@ case class SocialAccounts(
                            )
 
 case class User(
-                 id: Option[Int],
-                 emails: Set[String]
+                 id: Option[String],
+                 email: String,
+                 first_name: String,
+                 gender: String,
+                 last_name: String,
+                 link: String,
+                 locale: String,
+                 provider: String
                  )
 
 object User {

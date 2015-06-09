@@ -21,7 +21,9 @@ val appDependencies = Seq(
   "com.rabbitmq" % "amqp-client" % "3.2.2",
   "org.specs2" %% "specs2-core" % "2.4.17" % "test",
   "org.specs2" %% "specs2-mock" % "2.4.17" % "test",
-  "org.specs2" %% "specs2-junit" % "2.4.17" % "test"
+  "org.specs2" %% "specs2-junit" % "2.4.17" % "test",
+  "com.couchbase.client" % "java-client" % "2.1.3",
+  "io.reactivex" % "rxscala_2.11" % "0.24.1"
 )
 
 resolvers ++= Seq(
@@ -29,7 +31,8 @@ resolvers ++= Seq(
   "jBCrypt Repository" at "http://repo1.maven.org/maven2/org/",
   "netty" at "http://mvnrepository.com/",
   "ReactiveCouchbase" at "https://raw.github.com/ReactiveCouchbase/repository/master/releases",
-  "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
+  "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/",
+  "couchbase repo" at "http://files.couchbase.com/maven2"
 )
 
 lazy val root = project.in(file("."))
@@ -37,3 +40,9 @@ lazy val root = project.in(file("."))
   .settings(
     libraryDependencies ++= appDependencies
   )
+
+val initusers = TaskKey[Unit]("initusers", "init users")
+
+initusers := {
+  println("ToDo")
+}

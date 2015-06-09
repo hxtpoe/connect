@@ -6,6 +6,10 @@
         },
         "byEmail": {
             "map": "function(doc, meta) { if(doc.email) { emit( doc.email) }}"
+        },
+        "count": {
+            "map": "function(doc, meta) { if(doc.email) { emit( doc.email) }}",
+            "reduce": "_count"
         }
     }
 }

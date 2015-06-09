@@ -1,18 +1,21 @@
 package models
 
+import com.couchbase.client.protocol.views.{ComplexKey, Query, Stale}
+import datasources.couchbase
+import org.reactivecouchbase.play.PlayCouchbase
 import play.Play
 import play.api.libs.json._
-import datasources.couchbase
+import play.api.Play.current
 import scala.concurrent.Future
-import com.couchbase.client.protocol.views.{ComplexKey, Stale, Query}
-import scala.concurrent.ExecutionContext.Implicits.global
 
 case class Follower(followerId: String) {}
 
 object Follower {
   implicit val bucket = couchbase.bucketOfUsers
   implicit val followerFormatter: Format[Follower] = Json.format[Follower]
-  val view = (if (Play.application().isDev) "dev_") + "followers"
+  implicit val ec = PlayCouchbase.couchbaseExecutor
+
+  val view = (if (Play.application().isDev) "dev_" else "") + "followers"
 
   def followers(userId: String, skip: Option[Int]): Future[List[Follower]] = {
 
@@ -23,7 +26,7 @@ object Follower {
         .setIncludeDocs(true)
         .setInclusiveEnd(true)
         .setSkip(skip getOrElse 0)
-        .setStale(Stale.FALSE)
-        .setLimit(25))
+        .setStale(Stale.OK)
+        .setLimit(10))
   }
 }

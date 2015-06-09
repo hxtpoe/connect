@@ -2,13 +2,7 @@ import datasources.{couchbase => cb}
 import filters.CorsFilter
 import models.{Post, User}
 import play.api._
-import play.api.libs.json.{Json, JsValue}
 import play.api.mvc._
-import com.typesafe.config.ConfigFactory
-import queue.RabbitMQConnection
-import utils.Sender
-import datasources.couchbase
-import scala.concurrent.ExecutionContext.Implicits.global
 
 object Global extends GlobalSettings {
   override def doFilter(action: EssentialAction) = {
@@ -17,16 +11,17 @@ object Global extends GlobalSettings {
 
   override def onStart(app: Application): Unit = {
     println("App staring...")
-    //    val connection = RabbitMQConnection.getConnection;
-    //    val sendingChannel1 = connection.createChannel();
-    //    Sender.startSending
+//    val connection = RabbitMQConnection.getConnection
+//    val sendingChannel1 = connection.createChannel()
+//    Sender.startSending
     User.init()
     Post.init()
   }
 
   override def onStop(app: Application) {
+    datasources.newCouchbase.cluster.disconnect()
     println("App stoping...")
-    //    Sender.stopEverything
+//    Sender.stopEverything
     cb.close
   }
 }

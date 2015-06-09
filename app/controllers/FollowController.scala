@@ -1,11 +1,12 @@
 package controllers
 
-import javax.ws.rs.{QueryParam, PathParam}
+import javax.ws.rs.{PathParam, QueryParam}
 
 import com.wordnik.swagger.annotations._
-import models.{Follower, Followee, FollowPair}
+import models.{FollowPair, Followee, Follower}
 import play.api.libs.json._
 import play.api.mvc._
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 @Api(value = "/followers")
@@ -28,12 +29,31 @@ object FollowController extends Controller {
         followers <- Followee.followees(userId.toString, skip)
         counter <- FollowPair.countFollowers(userId.toString)
       } yield {
+
+        val simpleList = followers.map(_.followeeId)
+
         Ok(Json.obj(
-          "rows" -> Json.toJson(followers),
+          "rows" -> Json.toJson(simpleList),
           "count" -> Json.toJson(counter)
         ))
       }
     }
+
+  def getFollowees2(
+                     @ApiParam(value = "userId") @PathParam("userId") userId: String,
+                     @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) = Action.async {
+
+    for {
+      x <- Followee.followees2(userId.toString, skip)
+      counter <- FollowPair.countFollowers(userId.toString)
+    } yield {
+
+      Ok(Json.obj(
+        "rows" -> Json.toJson(x),
+        "count" -> Json.toJson(counter)
+      ))
+    }
+  }
 
   @ApiOperation(
     nickname = "getFollowers",

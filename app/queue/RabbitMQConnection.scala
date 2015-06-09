@@ -6,7 +6,7 @@ import utils.Config
 
 object RabbitMQConnection {
 
-  private val connection: Connection = null;
+  private val connection: Connection = null
 
   def getConnection(): Connection = {
     connection match {

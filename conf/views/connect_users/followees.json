@@ -5,7 +5,8 @@
             "map": "function(doc, meta) { if(doc.t === 'fp') { emit(doc.followerId + '_' + doc.followeeId)} }"
         },
         "count": {
-            "map": "function(doc, meta) { if(doc.t === 'fp') { emit(doc.followerId)} }"
+            "map": "function(doc, meta) { if(doc.t === 'fp') { emit(doc.followerId)} }",
+            "reduce": "_count"
         }
     }
 }
