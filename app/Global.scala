@@ -14,8 +14,13 @@ object Global extends GlobalSettings {
 //    val connection = RabbitMQConnection.getConnection
 //    val sendingChannel1 = connection.createChannel()
 //    Sender.startSending
+
+
+
     User.init()
     Post.init()
+
+
   }
 
   override def onStop(app: Application) {

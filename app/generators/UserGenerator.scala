@@ -6,20 +6,23 @@ import models.User
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
 import play.api.libs.json._
+import play.api.Logger
 
-case class FP(followerId: String, followeeId: String, timestamp: Long, t: String = "fp") {}
+case class FP(followerId: String, followeeId: String, timestamp: Long, t: String = "followee") {}
 
 
 object UserGenerator {
   implicit val followPairFormatter: Format[FP] = Json.format[FP]
   val bucket = couchbase.bucketOfUsers
-  val numerOfUsers = 3000
+  val numerOfUsers = 1000
+  val userStandard = 1000000
 
-  def run() = {
-    for (a <- 1000 to numerOfUsers) {
-      if (a % 100 == 0) {
-        println(a)
-        Thread.sleep(1000)
+  def runUsers() = {
+    Logger.warn("users created")
+    for (a <- userStandard to userStandard + numerOfUsers) {
+      if (a % 200 == 0) {
+        //        Logger.info(s"users generate... $a")
+        Thread.sleep(500)
       }
       bucket.add[User](a.toString, User(
         Some(a.toString),
@@ -34,23 +37,37 @@ object UserGenerator {
     }
   }
 
-  def run2() = {
-    for {
-      a <- 100 to 105
-      b <- 1 to 2000
-    } {
+  def runFollowees() = {
+    def create(a: Int, b: Int, sleep: Int): Unit = {
       val followerId = b.toString
       val followeeId = a.toString
+      val t = timestamp
 
-      bucket.add[FP](followerId + "_" + followeeId, FP(followerId, followeeId, timestamp))
-      if (b % 100 == 0) {
-        println(a)
-        println(b)
-        Thread.sleep(1000)
+      bucket.add[FP](followerId + "_" + t + "_" + followeeId, FP(followerId, followeeId, t))
+      if (b % (250) == 0) {
+        Thread.sleep(sleep)
       }
     }
-  }
+    var c = 0
+    Logger.warn("0.1%")
+    for {
+      a <- userStandard to userStandard + (numerOfUsers * 0.001).toInt
+      b <- userStandard to userStandard + 1000
+    } {
+      create(a, b, 250)
+      c = c + 1
+    }
 
+    Logger.warn("1%")
+    for {
+      a <- userStandard to userStandard + (numerOfUsers * 0.01).toInt
+      b <- userStandard to userStandard + 500
+    } {
+      create(a, b, 250)
+      c = c + 1
+    }
+    Logger.warn(s"Done:  " + (c + numerOfUsers))
+  }
 
   def randInt(): Int = {
     Random.nextInt(numerOfUsers)
@@ -106,5 +123,5 @@ object UserGenerator {
     lastnames(Random.nextInt(lastnames.size))
   }
 
-  def timestamp() = Random.nextInt(10000000).toLong
+  def timestamp() = System.currentTimeMillis / 1000
 }

@@ -3,16 +3,16 @@ package models
 import java.util.UUID
 
 import datasources.couchbase
-import org.reactivecouchbase.client.Counters
 import org.reactivecouchbase.play.PlayCouchbase
 import play.Play
-import play.api.libs.json._
-import scala.concurrent.Future
 import play.api.Play.current
+import play.api.libs.json._
 
-case class FollowPair(followerId: String, followeeId: String, timestamp: Long, t: String = "fp") {}
+import scala.concurrent.Future
 
-object FollowPair extends Counters {
+case class FollowPair(followerId: String, followeeId: String, timestamp: Long, t: String = "followee") {}
+
+object FollowPair {
   implicit val bucket = couchbase.bucketOfUsers
   implicit val followPairFormatter: Format[FollowPair] = Json.format[FollowPair]
   implicit val ec = PlayCouchbase.couchbaseExecutor
@@ -24,28 +24,16 @@ object FollowPair extends Counters {
   }
 
   def follow(followerId: String, followeeId: String): Unit = {
-    val key = followerId + "_" + followeeId
+    val t = timestamp()
+    val key = followerId + "_" + t.toString + "_" + followeeId
 
-    bucket.get[FollowPair](key) onSuccess {
-      case None => {
-        bucket.get[Int](followerId + "_follows") onSuccess {
-          case Some(_) => bucket.incrAndGet(followerId + "_follows", 1)
-          case None => bucket.set[Int](followerId + "_follows", 1)
-        }
-        bucket.set(key, FollowPair(followerId, followeeId, timestamp))
-      }
-    }
+    bucket.set(key, FollowPair(followerId, followeeId, t))
   }
 
   def unfollow(followerId: String, followeeId: String) = {
     val key = followerId + "_" + followeeId
-
-    bucket.get(key) onSuccess {
-      case Some(_) => {
-        bucket.decrAndGet(followerId + "_follows", 1)
-        bucket.delete(key)
-      }
-    }
+    bucket.delete(key)
+    // check
   }
 
   def generateId() = UUID.randomUUID().toString

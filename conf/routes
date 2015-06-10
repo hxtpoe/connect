@@ -20,7 +20,8 @@ GET            /assets/*file                                   controllers.Asset
 GET            /api/user/:userId                               controllers.UserController.getUser(userId: Int)
 
 GET            /api/user/:userId/followees                     controllers.FollowController.getFollowees(userId: String, skip: Option[Int])
-GET            /api/user/:userId/followees2                    controllers.FollowController.getFollowees2(userId: String, skip: Option[Int])
+GET            /api/user/:userId/followeesV2                   controllers.FollowController.getFolloweesV2(userId: String, skip: Option[Int])
+GET            /api/user/:userId/followeesV1                   controllers.FollowController.getFolloweesV1(userId: String, skip: Option[Int])
 GET            /api/user/:userId/followers                     controllers.FollowController.getFollowers(userId: String, skip: Option[Int])
 PUT            /api/user/:followerId/follow/:followeeId        controllers.FollowController.follow(followerId: Int, followeeId: Int)
 DELETE         /api/user/:followerId/follow/:followeeId        controllers.FollowController.unfollow(followerId: Int, followeeId: Int)

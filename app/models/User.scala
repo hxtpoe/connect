@@ -65,7 +65,11 @@ object User {
 
   def init() = {
     bucket.get("users_counter") onSuccess {
-      case None => bucket.set[Int]("users_counter", 0)
+      case None => {
+        bucket.set[Int]("users_counter", 0)
+        generators.UserGenerator.runUsers()
+        generators.UserGenerator.runFollowees()
+      }
     }
   }
 }

@@ -5,7 +5,7 @@ import com.couchbase.client.java.CouchbaseCluster
 import rx.lang.scala.Observable
 
 object newCouchbase {
-  val cluster = CouchbaseCluster.create("192.168.1.42")
+  val cluster = CouchbaseCluster.create("192.168.10.42")
 
   val bucket = cluster.openBucket("connect_users")
 

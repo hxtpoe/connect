@@ -21,13 +21,13 @@ object FollowController extends Controller {
     Array(
       new ApiResponse(code = 200, message = "Success")
     ))
-  def getFollowees(
-                    @ApiParam(value = "userId") @PathParam("userId") userId: String,
-                    @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) =
+  def getFolloweesV1(
+                      @ApiParam(value = "userId") @PathParam("userId") userId: String,
+                      @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) =
     Action.async {
       for {
-        followers <- Followee.followees(userId.toString, skip)
-        counter <- FollowPair.countFollowers(userId.toString)
+        followers <- Followee.followees1(userId.toString, skip)
+        counter <- Followee.numberOfFollowees(userId.toString)
       } yield {
 
         val simpleList = followers.map(_.followeeId)
@@ -39,13 +39,29 @@ object FollowController extends Controller {
       }
     }
 
-  def getFollowees2(
-                     @ApiParam(value = "userId") @PathParam("userId") userId: String,
-                     @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) = Action.async {
+  def getFolloweesV2(
+                      @ApiParam(value = "userId") @PathParam("userId") userId: String,
+                      @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) = Action.async {
 
     for {
       x <- Followee.followees2(userId.toString, skip)
-      counter <- FollowPair.countFollowers(userId.toString)
+      counter <- Followee.numberOfFollowees(userId.toString)
+    } yield {
+
+      Ok(Json.obj(
+        "rows" -> Json.toJson(x),
+        "count" -> Json.toJson(counter)
+      ))
+    }
+  }
+
+  def getFollowees(
+                    @ApiParam(value = "userId") @PathParam("userId") userId: String,
+                    @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) = Action.async {
+
+    for {
+      x <- Followee.followees(userId.toString, skip)
+      counter <- Followee.numberOfFollowees(userId.toString)
     } yield {
 
       Ok(Json.obj(
