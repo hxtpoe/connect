@@ -8,7 +8,7 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import javax.ws.rs.PathParam
 
-@Api(value = "/posts", description = "Operations about posts")
+@Api(value = "/posts")
 object PostController extends Controller {
 
   @ApiOperation(
@@ -24,7 +24,7 @@ object PostController extends Controller {
   @ApiImplicitParams(Array(
     new ApiImplicitParam(name = "page", value = "page offset", required = false, dataType = "Int", paramType = "query")))
   def findByUsername(
-                            @ApiParam(value = "username of the user to fetch") @PathParam("username") username: String) =
+                      @ApiParam(value = "username of the user to fetch") @PathParam("username") username: String) =
     Action.async { request =>
       Post.findAllByUsername(username) flatMap {
         list => Future {

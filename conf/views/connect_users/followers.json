@@ -1,0 +1,15 @@
+{
+    "name": "followers",
+    "views": {
+        "all": {
+            "map": "function(doc, meta) { if(doc.t === 'follower') { emit(doc.followeeId + '_' + doc.timestamp + '_' +  doc.followerId)} }"
+        },
+        "allV2": {
+            "map": "function(doc, meta) { if(doc.t === 'follower') { emit(doc.followeeId, doc.followerId)} }"
+        },
+        "count": {
+            "map": "function(doc, meta) { if(doc.t === 'follower') { emit(doc.followeeId)} }",
+            "reduce": "_count"
+        }
+    }
+}

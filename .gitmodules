@@ -1,0 +1,12 @@
+[submodule "rabbit/puppet/modules/apt"]
+	path = rabbit/puppet/modules/apt
+	url = https://github.com/puppetlabs/puppetlabs-apt.git
+[submodule "rabbit/puppet/modules/rabbitmq"]
+	path = rabbit/puppet/modules/rabbitmq
+	url = https://github.com/puppetlabs/puppetlabs-rabbitmq.git
+[submodule "rabbit/puppet/modules/stdlib"]
+	path = rabbit/puppet/modules/stdlib
+	url = https://github.com/puppetlabs/puppetlabs-stdlib.git
+[submodule "rabbit/modules/garethr-erlang"]
+	path = rabbit/puppet/modules/garethr-erlang
+	url = https://github.com/garethr/garethr-erlang.git

@@ -30,9 +30,13 @@ object FacebookProfile {
       case None => {
         val newIdenfifier = increment()
         bucket.set[JsValue](
-          "user:" + newIdenfifier.toString, Json.toJson(profile).as[JsObject] ++
-            Json.obj("provider" -> "fb", "type" -> "user", "created_at" -> getTimestamp()))
-        "user:" + newIdenfifier
+          newIdenfifier.toString, Json.toJson(profile).as[JsObject] ++
+            Json.obj(
+              "provider" -> "fb",
+              "type" -> "user",
+              "created_at" -> getTimestamp()
+            ))
+        newIdenfifier.toString
       }
     }
   }

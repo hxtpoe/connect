@@ -6,7 +6,7 @@ import org.reactivecouchbase.client.{RawRow, OpResult}
 import play.api.libs.json.{Json, Format}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 case class RegisteredAccount(
                               email: String,
@@ -18,8 +18,14 @@ case class SocialAccounts(
                            )
 
 case class User(
-                 id: Option[Int],
-                 emails: Set[String]
+                 id: Option[String],
+                 email: String,
+                 first_name: String,
+                 gender: String,
+                 last_name: String,
+                 link: String,
+                 locale: String,
+                 provider: String
                  )
 
 object User {
@@ -27,7 +33,7 @@ object User {
   implicit val fmt: Format[User] = Json.format[User]
 
   def find(id: Long): Future[Option[User]] = {
-    bucket.get("user:" + id.toString)
+    bucket.get(id.toString)
   }
 
   def findUserIdByFacebookId(fbId: String): Future[Option[String]] = {
@@ -55,5 +61,15 @@ object User {
 
   def remove(id: Int): Future[OpResult] = {
     bucket.delete(id.toString)
+  }
+
+  def init() = {
+    bucket.get("users_counter") onSuccess {
+      case None => {
+        bucket.set[Int]("users_counter", 0)
+        generators.UserGenerator.runUsers()
+        generators.UserGenerator.runFollowees()
+      }
+    }
   }
 }
