@@ -13,17 +13,17 @@ case class FP(followerId: String, followeeId: String, timestamp: Long, t: String
 
 object UserGenerator {
   implicit val followPairFormatter: Format[FP] = Json.format[FP]
-  val bucket = couchbase.bucketOfUsers
-  val numerOfUsers = 100
-  val userStandard = 1000000
+  val bucket = couchbase.bucket
+  val numberOfUsers = 100
+  val userStandard = 1
 
   def runUsers() = {
     Logger.warn("users created")
-    for (a <- userStandard to userStandard + numerOfUsers) {
+    for (a <- userStandard to userStandard + numberOfUsers) {
       if (a % 200 == 0) {
         Thread.sleep(500)
       }
-      bucket.add[User](a.toString, User(
+      bucket.add[User]("user::" + a.toString, User(
         Some(a.toString),
         a.toString + randomEmail,
         firstname,
@@ -32,13 +32,13 @@ object UserGenerator {
         "http://google.pl/abcdefghijl",
         "en",
         "fb",
-        Some(List.range(userStandard + 1, userStandard + 1 + (150 + scala.util.Random.nextInt(75))))
+        Some(List())
       ))
     }
   }
 
   def randInt(): Int = {
-    Random.nextInt(numerOfUsers)
+    Random.nextInt(numberOfUsers)
   }
 
   def randomEmail: String = {

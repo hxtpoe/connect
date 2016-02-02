@@ -16,7 +16,7 @@ import scala.concurrent.{Future, Promise}
 case class Follower(followerId: String) {}
 
 object Follower {
-  implicit val bucket = couchbase.bucketOfUsers
+  implicit val bucket = couchbase.bucket
   implicit val followerFormatter: Format[Follower] = Json.format[Follower]
   implicit val ec = PlayCouchbase.couchbaseExecutor
 
@@ -64,7 +64,6 @@ object Follower {
     )
 
     followeePromise.future
-
   }
 
   def numberOfFollowers(userId: String): Future[Int] = {

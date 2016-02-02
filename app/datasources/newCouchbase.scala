@@ -8,5 +8,5 @@ object newCouchbase {
     .builder()
     .queryEnabled(true)
     .build(), "192.168.10.42")
-  val bucket = cluster.openBucket("connect_users")
+  val bucket = cluster.openBucket("connect")
 }

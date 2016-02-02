@@ -1,51 +1,126 @@
 package models
 
+import java.text.SimpleDateFormat
+import java.util.{Locale, Date, Calendar, TimeZone}
+
 import com.couchbase.client.protocol.views.{ComplexKey, Query, Stale}
 import datasources.{couchbase => cb}
 import org.reactivecouchbase.client.OpResult
 import play.Play
 import play.api.libs.json._
+
 import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-case class Post(id: Option[String], message: String, author: String, timestamp: Option[Int]) {
+
+case class Post(
+                 id: Option[String],
+                 message: String,
+                 timestamp: Option[Int],
+                 uuid: Option[String],
+                 createdAt: Option[String]
+               ) {
 }
 
 object Post {
-  implicit val bucket = cb.bucketOfPosts
-  implicit val timelineBucket = cb.bucketOfTimelines
+  implicit val bucket = cb.bucket
   implicit val fmt: Format[Post] = Json.format[Post]
 
   val hotView = (if (Play.application().isDev) "dev_") + "hotPosts"
   val coldView = (if (Play.application().isDev) "dev_") + "posts"
 
+  val timestamp: Long = System.currentTimeMillis / 1000
+  val date = new java.util.Date()
+
+  val now = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTime
+
+
   def find(id: String): Future[Option[Post]] = {
     bucket.get(id)
   }
 
-  def create(id: String, post: Post): Future[OpResult] = {
-    val timestamp: Long = System.currentTimeMillis / 1000
-    val followers = Follower.followers(1000001.toString, None)
+  def getAll(userId: String, year: Int, week: Int): Future[List[Post]] = {
+    for (
+      posts <- bucket.get[Option[JsObject]](s"$userId::posts::$year::$week")
+    ) yield {
+      posts match {
+        case Some(posts) => posts.get.\("posts").as[List[Post]].sortBy(_.createdAt).reverse
+        case None => List()
+      }
+    }
+  }
 
-    bucket.add[JsValue](id,
+  def create(id: String, userId: String, post: Post) = {
+    val dateFormatGmt = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH) // RFC 2822
+    val weekOfTheYear = new SimpleDateFormat("w", Locale.ENGLISH)
+    val year = new SimpleDateFormat("YYYY", Locale.ENGLISH)
+
+    dateFormatGmt.setTimeZone(TimeZone.getTimeZone("UTC+0"))
+    year.setTimeZone(TimeZone.getTimeZone("UTC+0"))
+    weekOfTheYear.setTimeZone(TimeZone.getTimeZone("UTC+0"))
+
+    val now = new Date()
+
+    dateFormatGmt.format(now)
+
+    val documentId = userId + "::posts::" + year.format(now) + "::" + weekOfTheYear.format(now)
+
+    for (
+      storedPost <- bucket.get[JsObject](documentId)
+    ) yield {
+
+      storedPost.getOrElse(JsArray()) match {
+        case array if array == JsArray() => add(post, id, userId, documentId, dateFormatGmt.format(now)) // create
+        case posts => append(storedPost.get, post, id, userId, documentId, dateFormatGmt.format(now)) //append
+      }
+    }
+  }
+
+  def add(post: Post, uuid: String, userId: String, docId: String, stringDate: String): Future[OpResult] = {
+    val newPost =
       Json.obj(
-        "author" -> post.author,
+        "posts" ->
+          Json.arr(
+            Json.obj(
+              "uuid" -> uuid,
+              "message" -> post.message
+            ) ++ Json.obj(
+              "createdAt" -> stringDate.toString,
+              "docType" -> "post")))
+
+    bucket.add[JsValue](docId, newPost)
+  }
+
+  def append(storedPost: JsObject, post: Post, uuid: String, userId: String, docId: String, stringDate: String): Future[OpResult] = {
+
+    val newPost =
+      Json.obj(
+        "uuid" -> uuid,
         "message" -> post.message
       ) ++ Json.obj(
-        "timestamp" -> timestamp, "t" -> "post"
-      ))
+        "createdAt" -> stringDate.toString,
+        "docType" -> "post")
+
+    val newListOfPosts = (storedPost \ "posts").as[JsArray] :+ newPost
+
+
+    bucket.set[JsObject](docId,
+      Json.obj(
+        "posts" -> newListOfPosts
+      )
+    )
   }
 
   def getCached(userId: String): Future[Option[List[Post]]] = {
-    timelineBucket.get[List[Post]](userId)
+    bucket.get[List[Post]](userId)
   }
 
   def getAndCache(ownerId: String, usersIds: List[String]): Future[List[Post]] = {
     for {
       timeline <- calculateTimeline(usersIds)
     } yield {
-      timelineBucket.set(ownerId, timeline)
+      bucket.set(ownerId, timeline)
       timeline
     }
   }
@@ -75,8 +150,8 @@ object Post {
   def userPosts(userId: String): Future[List[Post]] = {
     val result = bucket.find[Post](hotView, "byAuthorWithTimestamp")(
       new Query()
-        .setRangeStart(ComplexKey.of(JsArray(Seq(JsString(userId), JsNumber(1136734444)))))
-        .setRangeEnd(ComplexKey.of(JsArray(Seq(JsString(userId), JsNumber(1936734444)))))
+        .setRangeStart(ComplexKey.of(JsArray(Seq(JsString(userId), JsNumber(1353930689)))))
+        .setRangeEnd(ComplexKey.of(JsArray(Seq(JsString(userId), JsNumber(1653930689)))))
         .setDescending(false)
         .setIncludeDocs(true)
         .setLimit(25)
@@ -88,24 +163,5 @@ object Post {
     })
 
     result
-  }
-
-  def findAllByUsername(userId: String): Future[List[Post]] = {
-    bucket.find[Post](hotView, "all")(
-      new Query()
-        .setKey(ComplexKey.of(userId))
-        .setDescending(true)
-        .setIncludeDocs(true)
-        .setLimit(25)
-        .setInclusiveEnd(true)
-        .setStale(Stale.UPDATE_AFTER))
-  }
-
-  def findAll(): Future[List[Post]] = {
-    bucket.find[Post](hotView, "allPosts")(
-      new Query()
-        .setIncludeDocs(true)
-        .setLimit(25)
-        .setStale(Stale.FALSE))
   }
 }

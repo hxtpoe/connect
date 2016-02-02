@@ -17,9 +17,12 @@ POST           /auth/facebook                                  controllers.Authe
 
 GET            /assets/*file                                   controllers.Assets.at(path="/public/", file)
 
-GET            /api/user/:userId                               controllers.UserController.getUser(userId: Int)
-GET            /api/user/:userId/timeline                      controllers.PostController.timeline(userId: Int)
-GET            /api/user/:userId/backendTimeline               controllers.PostController.backendTimeline(userId: Int)
+GET            /api/user/:userId                               controllers.UserController.user(userId: Int)
+GET            /api/user/:userId/posts                         controllers.PostController.latestPosts(userId: Int)
+GET            /api/user/:userId/posts/:year/:week             controllers.PostController.posts(userId: Int, year: Int, week: Int)
+POST           /api/user/:userId/posts                         controllers.PostController.create(userId: Int)
+GET            /api/user/:userId/timeline/:year/:day           controllers.TimelineController.timeline(userId: Int, year: Int, day: Int)
+GET            /api/user/:userId/timeline                      controllers.TimelineController.latestTimeline(userId: Int)
 
 GET            /api/user/:userId/followees                     controllers.FollowController.getFollowees(userId: String, skip: Option[Int])
 GET            /api/user/:userId/followers                     controllers.FollowController.getFollowers(userId: String, skip: Option[Int])
@@ -27,9 +30,5 @@ PUT            /api/user/:followerId/follow/:followeeId        controllers.Follo
 DELETE         /api/user/:followerId/follow/:followeeId        controllers.FollowController.unfollow(followerId: Int, followeeId: Int)
 
 GET            /api/post/:postId                               controllers.PostController.find(postId: String)
-GET            /api/post/user/:username                        controllers.PostController.findByUsername(username: String)
 
-POST           /api/post                                       controllers.PostController.create
 POST           /api/feed/:owner/:author/:post/:time            controllers.FeedController.feed(owner: String, author: String, post: String, time: Int)
-#DELETE         /api/post/:postId        controllers.Post.delete(postId: Long)
-#PUT            /api/post/:postId        controllers.Post.update(postId: Long)

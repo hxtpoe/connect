@@ -16,7 +16,7 @@ object FollowController extends Controller {
                     @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) =
     Action.async {
       for {
-        user <- User.find(userId.toLong)
+        user <- User.find(userId.toString)
       } yield {
         Ok(Json.obj(
           "rows" -> user.get.followees.getOrElse(List()).slice(skip.getOrElse(0), skip.getOrElse(0) + 10),

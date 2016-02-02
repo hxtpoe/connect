@@ -1,5 +1,8 @@
 package controllers
 
+import java.text.SimpleDateFormat
+import java.util.{Date, TimeZone, Locale}
+
 import com.wordnik.swagger.annotations._
 import models.Post
 import play.api.libs.json.{JsError, _}
@@ -13,7 +16,7 @@ object PostController extends Controller {
 
   def backendTimeline(userId: Int) =
     Action.async { request =>
-      Post.getAndCache(userId.toString, (1 to 200).map(_.toString).toList) flatMap {
+      Post.getAndCache(userId.toString, (1 to 20).map(_.toString).toList) flatMap {
         list => Future {
           Ok(Json.toJson(list))
         }
@@ -29,33 +32,11 @@ object PostController extends Controller {
       }
     }
 
-  @ApiOperation(
-    nickname = "findByUsername",
-    value = "find posts by username",
-    response = classOf[Post],
-    responseContainer = "List",
-    produces = "application/json",
-    httpMethod = "GET")
+  @ApiOperation(nickname = "create", value = "create post")
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "Success"),
     new ApiResponse(code = 400, message = "Bad Request")))
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "page", value = "page offset", required = false, dataType = "Int", paramType = "query")))
-  def findByUsername(
-                      @ApiParam(value = "username of the user to fetch") @PathParam("username") username: String) =
-    Action.async { request =>
-      Post.findAllByUsername(username) flatMap {
-        list => Future {
-          Ok(Json.toJson(list))
-        }
-      }
-    }
-
-  @ApiOperation(nickname = "create", value = "create tweet")
-  @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Success"),
-    new ApiResponse(code = 400, message = "Bad Request")))
-  def create = Action.async(BodyParsers.parse.json) {
+  def create(userId: Int) = Action.async(BodyParsers.parse.json) {
     request =>
       val someJson = request.body.validate[Post]
 
@@ -66,7 +47,7 @@ object PostController extends Controller {
           },
           json => {
             val uuid = java.util.UUID.randomUUID().toString()
-            Post.create(uuid, json)
+            Post.create(uuid, "user::" + userId.toString, json)
             Ok(Json.obj("status" -> JsString("created: " + uuid.toString()))).withHeaders(LOCATION -> ("id: " + uuid))
           }
         )
@@ -91,6 +72,29 @@ object PostController extends Controller {
           case _ =>
             Ok(Json.toJson(t))
         }
+    }
+  }
+
+  def posts(userId: Int, year: Int, week: Int) = Action.async {
+    for (
+      posts <- Post.getAll(s"user::$userId", year, week)
+    ) yield {
+      Ok(Json.toJson(posts))
+    }
+  }
+
+  def latestPosts(userId: Int) = Action.async {
+    val weekOfTheYear = new SimpleDateFormat("w", Locale.ENGLISH)
+    val year = new SimpleDateFormat("YYYY", Locale.ENGLISH)
+    year.setTimeZone(TimeZone.getTimeZone("UTC+0"))
+    weekOfTheYear.setTimeZone(TimeZone.getTimeZone("UTC+0"))
+
+    val now = new Date()
+
+    for (
+      posts <- Post.getAll(s"user::$userId", year.format(now).toInt, weekOfTheYear.format(now).toInt)
+    ) yield {
+      Ok(Json.toJson(posts))
     }
   }
 
