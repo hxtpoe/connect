@@ -84,15 +84,8 @@ object PostController extends Controller {
   }
 
   def latestPosts(userId: Int) = Action.async {
-    val weekOfTheYear = new SimpleDateFormat("w", Locale.ENGLISH)
-    val year = new SimpleDateFormat("YYYY", Locale.ENGLISH)
-    year.setTimeZone(TimeZone.getTimeZone("UTC+0"))
-    weekOfTheYear.setTimeZone(TimeZone.getTimeZone("UTC+0"))
-
-    val now = new Date()
-
     for (
-      posts <- Post.getAll(s"user::$userId", year.format(now).toInt, weekOfTheYear.format(now).toInt)
+      posts <- Post.getAll(s"user::$userId", year, dayOfYear / 7)
     ) yield {
       Ok(Json.toJson(posts))
     }
@@ -101,4 +94,15 @@ object PostController extends Controller {
   def update(id: Long) = TODO
 
   def delete(id: Long) = TODO
+
+  def dayOfYear: Int = simpleDataFormat("D")
+
+  def year: Int = simpleDataFormat("YYYY")
+
+  def simpleDataFormat(code: String): Int = {
+    val now = new Date()
+    val day = new SimpleDateFormat(code, Locale.ENGLISH)
+    day.setTimeZone(TimeZone.getTimeZone("UTC+0"))
+    day.format(now).toInt
+  }
 }

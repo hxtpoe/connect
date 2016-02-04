@@ -1,7 +1,7 @@
 package models
 
 import java.text.SimpleDateFormat
-import java.util.{Locale, Date, Calendar, TimeZone}
+import java.util.{Date, Locale, TimeZone}
 
 import com.couchbase.client.protocol.views.{ComplexKey, Query, Stale}
 import datasources.{couchbase => cb}
@@ -33,9 +33,6 @@ object Post {
   val timestamp: Long = System.currentTimeMillis / 1000
   val date = new java.util.Date()
 
-  val now = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTime
-
-
   def find(id: String): Future[Option[Post]] = {
     bucket.get(id)
   }
@@ -52,19 +49,12 @@ object Post {
   }
 
   def create(id: String, userId: String, post: Post) = {
-    val dateFormatGmt = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH) // RFC 2822
-    val weekOfTheYear = new SimpleDateFormat("w", Locale.ENGLISH)
-    val year = new SimpleDateFormat("YYYY", Locale.ENGLISH)
-
-    dateFormatGmt.setTimeZone(TimeZone.getTimeZone("UTC+0"))
-    year.setTimeZone(TimeZone.getTimeZone("UTC+0"))
-    weekOfTheYear.setTimeZone(TimeZone.getTimeZone("UTC+0"))
-
     val now = new Date()
-
+    val dateFormatGmt = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH) // RFC 2822
+    dateFormatGmt.setTimeZone(TimeZone.getTimeZone("UTC+0"))
     dateFormatGmt.format(now)
 
-    val documentId = userId + "::posts::" + year.format(now) + "::" + weekOfTheYear.format(now)
+    val documentId = userId + "::posts::" + year + "::" + weekOfYear
 
     for (
       storedPost <- bucket.get[JsObject](documentId)
@@ -79,7 +69,7 @@ object Post {
 
   def add(post: Post, uuid: String, userId: String, docId: String, stringDate: String): Future[OpResult] = {
     val newPost =
-      Json.obj(
+      Json.obj(// why is this Json, not an object
         "posts" ->
           Json.arr(
             Json.obj(
@@ -93,7 +83,6 @@ object Post {
   }
 
   def append(storedPost: JsObject, post: Post, uuid: String, userId: String, docId: String, stringDate: String): Future[OpResult] = {
-
     val newPost =
       Json.obj(
         "uuid" -> uuid,
@@ -103,7 +92,6 @@ object Post {
         "docType" -> "post")
 
     val newListOfPosts = (storedPost \ "posts").as[JsArray] :+ newPost
-
 
     bucket.set[JsObject](docId,
       Json.obj(
@@ -163,5 +151,18 @@ object Post {
     })
 
     result
+  }
+
+  def weekOfYear = dayOfYear / 7
+
+  def dayOfYear: Int = simpleDataFormat("D")
+
+  def year: Int = simpleDataFormat("YYYY")
+
+  def simpleDataFormat(code: String): Int = {
+    val now = new Date()
+    val day = new SimpleDateFormat(code, Locale.ENGLISH)
+    day.setTimeZone(TimeZone.getTimeZone("UTC+0"))
+    day.format(now).toInt
   }
 }
