@@ -3,34 +3,24 @@ package controllers
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone, Locale}
 
+import actors.timeline.CalculateTimelineActor
+import akka.actor.Props
 import com.wordnik.swagger.annotations._
-import models.Post
+import models.{Follower, Post}
+import play.api.libs.concurrent.Akka
 import play.api.libs.json.{JsError, _}
 import play.api.mvc._
 import scala.concurrent.Future
+import play.api.Play.current
 import scala.concurrent.ExecutionContext.Implicits.global
 import javax.ws.rs.PathParam
 
 @Api(value = "/posts")
 object PostController extends Controller {
 
-  def backendTimeline(userId: Int) =
-    Action.async { request =>
-      Post.getAndCache(userId.toString, (1 to 20).map(_.toString).toList) flatMap {
-        list => Future {
-          Ok(Json.toJson(list))
-        }
-      }
-    }
+  def system = play.api.libs.concurrent.Akka.system
 
-  def timeline(userId: Int) =
-    Action.async { request =>
-      Post.getCached(userId.toString) flatMap {
-        list => Future {
-          Ok(Json.toJson(list))
-        }
-      }
-    }
+  val myActor = Akka.system.actorOf(Props[CalculateTimelineActor], name = "CalculateTimelineActor")
 
   @ApiOperation(nickname = "create", value = "create post")
   @ApiResponses(Array(
@@ -48,6 +38,12 @@ object PostController extends Controller {
           json => {
             val uuid = java.util.UUID.randomUUID().toString()
             Post.create(uuid, "user::" + userId.toString, json)
+
+            for {
+              followees <- Follower.followers(userId.toString, None)
+            } yield {
+              followees.map(myActor ! _.toString())
+            }
             Ok(Json.obj("status" -> JsString("created: " + uuid.toString()))).withHeaders(LOCATION -> ("id: " + uuid))
           }
         )

@@ -19,7 +19,8 @@ case class Post(
                  message: String,
                  timestamp: Option[Int],
                  uuid: Option[String],
-                 createdAt: Option[String]
+                 createdAt: Option[String],
+                 docType: Option[String]
                ) {
 }
 

@@ -26,18 +26,18 @@ object TimelineController extends Controller {
   }
 
   def calcLatestTimeline(userId: Int) = Action.async {
-    Timeline.currentWeekTimeline(userId)
+    Timeline.currentWeekTimeline(s"user::$userId")
 
     Future {
-      Ok("backend action runned")
+      Ok("backend action")
     }
   }
 
   def specifiedTimeline(userId: Int, year: Int, week: Int) = Action.async {
-    Timeline.specifiedTimeline(userId, year, week)
+    Timeline.specifiedTimeline(s"user::$userId", year, week)
 
     Future {
-      Ok("backend action runned")
+      Ok("backend action")
     }
   }
 

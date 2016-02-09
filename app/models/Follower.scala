@@ -34,7 +34,7 @@ object Follower {
           .from(view, "all")
           .limit(3000)
           .stale(NewStale.UPDATE_AFTER)
-          .key(userId)
+          .key(s"user::$userId")
           .inclusiveEnd(true)
       )
 
@@ -45,7 +45,7 @@ object Follower {
     })
       .map[String](new Func1[AsyncViewRow, String] {
       override def call(row: AsyncViewRow) = {
-        row.id.toString
+        row.id
       }
     })
 
