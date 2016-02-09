@@ -1,7 +1,7 @@
 package models
 
 import java.text.SimpleDateFormat
-import java.util.{Date, Locale, TimeZone}
+import java.util.Locale
 
 import datasources.couchbase
 import play.api.libs.json._
@@ -10,7 +10,7 @@ import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-object Timeline {
+object Timeline extends DataPartitionable {
   implicit val bucket = couchbase.bucket
 
   def currentWeekTimeline(userId: String) = {
@@ -49,8 +49,10 @@ object Timeline {
 
         numbersOfDaysInLastWeek.map(numberOfADay => {
           val postsForGivenDay = y.filter({ x =>
-            val dt = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH).parse(x.createdAt.get)
-            new SimpleDateFormat("D", Locale.ENGLISH).format(dt).toInt == numberOfADay
+            val dt = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH)
+            dt.parse(x.createdAt.get)
+
+            new SimpleDateFormat("D", Locale.ENGLISH).format(dt.parse(x.createdAt.get)).toInt == numberOfADay // Tue, 09 Feb 2016 23:23:45 +0000
           })
 
           postsForGivenDay match {
@@ -66,7 +68,6 @@ object Timeline {
     }
   }
 
-
   def get(userId: Int, year: Int, day: Int): Future[List[Post]] = {
     for (
       posts <- bucket.get[Option[JsObject]](s"user::$userId::timelines::$year::$day")
@@ -76,20 +77,5 @@ object Timeline {
         case None => List()
       }
     }
-  }
-
-  ///
-
-  def currentWeekOfYear = currentDayOfYear / 7
-
-  def currentDayOfYear: Int = simpleDataFormat("D")
-
-  def currentYear: Int = simpleDataFormat("YYYY")
-
-  def simpleDataFormat(code: String): Int = {
-    val now = new Date()
-    val day = new SimpleDateFormat(code, Locale.ENGLISH)
-    day.setTimeZone(TimeZone.getTimeZone("UTC+0"))
-    day.format(now).toInt
   }
 }

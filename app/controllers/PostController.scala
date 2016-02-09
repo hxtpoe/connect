@@ -1,26 +1,25 @@
 package controllers
 
-import java.text.SimpleDateFormat
-import java.util.{Date, TimeZone, Locale}
+import javax.ws.rs.PathParam
 
 import actors.timeline.CalculateTimelineActor
 import akka.actor.Props
 import com.wordnik.swagger.annotations._
-import models.{Follower, Post}
+import models.{DataPartitionable, Follower, Post}
+import play.api.Play.current
 import play.api.libs.concurrent.Akka
 import play.api.libs.json.{JsError, _}
 import play.api.mvc._
-import scala.concurrent.Future
-import play.api.Play.current
+
 import scala.concurrent.ExecutionContext.Implicits.global
-import javax.ws.rs.PathParam
+import scala.concurrent.Future
 
 @Api(value = "/posts")
-object PostController extends Controller {
+object PostController extends Controller with DataPartitionable {
 
   def system = play.api.libs.concurrent.Akka.system
 
-  val myActor = Akka.system.actorOf(Props[CalculateTimelineActor], name = "CalculateTimelineActor")
+  val CalculateTimelineActor = Akka.system.actorOf(Props[CalculateTimelineActor], name = "CalculateTimelineActor")
 
   @ApiOperation(nickname = "create", value = "create post")
   @ApiResponses(Array(
@@ -42,7 +41,7 @@ object PostController extends Controller {
             for {
               followees <- Follower.followers(userId.toString, None)
             } yield {
-              followees.map(myActor ! _.toString())
+              followees.map(CalculateTimelineActor ! _.toString())
             }
             Ok(Json.obj("status" -> JsString("created: " + uuid.toString()))).withHeaders(LOCATION -> ("id: " + uuid))
           }
@@ -90,15 +89,4 @@ object PostController extends Controller {
   def update(id: Long) = TODO
 
   def delete(id: Long) = TODO
-
-  def dayOfYear: Int = simpleDataFormat("D")
-
-  def year: Int = simpleDataFormat("YYYY")
-
-  def simpleDataFormat(code: String): Int = {
-    val now = new Date()
-    val day = new SimpleDateFormat(code, Locale.ENGLISH)
-    day.setTimeZone(TimeZone.getTimeZone("UTC+0"))
-    day.format(now).toInt
-  }
 }

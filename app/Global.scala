@@ -1,3 +1,5 @@
+import java.util.TimeZone
+
 import datasources.{couchbase => cb}
 import filters.CorsFilter
 import models.User
@@ -15,6 +17,8 @@ object Global extends GlobalSettings {
 //    val sendingChannel1 = connection.createChannel()
 //    Sender.startSending
     User.init()
+
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC+0"))
   }
 
   override def onStop(app: Application) {
