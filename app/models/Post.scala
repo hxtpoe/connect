@@ -1,7 +1,7 @@
 package models
 
 import java.text.SimpleDateFormat
-import java.util.{Date, Locale, TimeZone}
+import java.util.{Date, Locale}
 
 import com.couchbase.client.protocol.views.{ComplexKey, Query, Stale}
 import datasources.{couchbase => cb}
@@ -12,7 +12,6 @@ import play.api.libs.json._
 import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
 
 case class Post(
                  id: Option[String],
@@ -52,7 +51,6 @@ object Post {
   def create(id: String, userId: String, post: Post) = {
     val now = new Date()
     val dateFormatGmt = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH) // RFC 2822
-    dateFormatGmt.setTimeZone(TimeZone.getTimeZone("UTC+0"))
     dateFormatGmt.format(now)
 
     val documentId = userId + "::posts::" + year + "::" + weekOfYear
@@ -163,7 +161,38 @@ object Post {
   def simpleDataFormat(code: String): Int = {
     val now = new Date()
     val day = new SimpleDateFormat(code, Locale.ENGLISH)
-    day.setTimeZone(TimeZone.getTimeZone("UTC+0"))
     day.format(now).toInt
   }
+}
+
+trait DataPartitionable {
+  def currentWeekOfYear = currentDayOfYear / 7
+
+  def currentDayOfYear: Int = simpleDataFormat("D")
+
+  def currentYear: Int = simpleDataFormat("YYYY")
+
+  def simpleDataFormat(code: String): Int = {
+    val now = new Date()
+    val day = new SimpleDateFormat(code, Locale.ENGLISH)
+    day.format(now).toInt
+  }
+
+  def previousPageDayNumber(year: Int, day: Int): Int = {
+    day - 1 match {
+      case 0 => if ((year - 1) % 4 == 0 && (year - 1) % 400 == 0) 366 else 365
+      case _ => day - 1
+    }
+  }
+
+  def previousPageYearNumber(year: Int, day: Int): Int = {
+    day - 1 match {
+      case 0 => year - 1
+      case _ => year
+    }
+  }
+
+  def dayOfYear: Int = simpleDataFormat("D")
+
+  def year: Int = simpleDataFormat("YYYY")
 }
