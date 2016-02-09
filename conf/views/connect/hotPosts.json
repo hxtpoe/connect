@@ -1,8 +1,0 @@
-{
-    "name": "hotPosts",
-    "views": {
-        "byAuthorWithTimestamp": {
-            "map": "function (doc, meta) { if(doc.t === 'post' && doc.timestamp > Math.floor((new Date().getTime()) / 1000) - (3600 * 24 * 7)) { emit([doc.author, doc.timestamp], doc.post); }}"
-        }
-    }
-}

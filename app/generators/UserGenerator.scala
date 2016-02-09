@@ -32,7 +32,7 @@ object UserGenerator {
         "http://google.pl/abcdefghijl",
         "en",
         "fb",
-        Some(List())
+        Some(List.range(1, 100).map(n => s"user::$n"))
       ))
     }
   }
