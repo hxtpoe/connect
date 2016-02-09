@@ -1,6 +1,6 @@
 import datasources.{couchbase => cb}
 import filters.CorsFilter
-import models.{Post, User}
+import models.User
 import play.api._
 import play.api.mvc._
 
@@ -14,13 +14,7 @@ object Global extends GlobalSettings {
 //    val connection = RabbitMQConnection.getConnection
 //    val sendingChannel1 = connection.createChannel()
 //    Sender.startSending
-
-
-
     User.init()
-    Post.init()
-
-
   }
 
   override def onStop(app: Application) {

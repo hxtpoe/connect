@@ -1,0 +1,8 @@
+{
+    "name": "followers",
+    "views": {
+        "all": {
+            "map": "function(doc, meta) { if(doc.followees) { doc.followees.forEach(function(followee){ emit(String(followee), doc.id) })}}"
+        }
+    }
+}

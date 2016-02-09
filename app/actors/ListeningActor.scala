@@ -14,11 +14,11 @@ class ListeningActor(channel: Channel, queue: String, f: (String) => Any) extend
     val consumer = new QueueingConsumer(channel);
     channel.basicConsume(queue, true, consumer);
 
-    while(true){
+    while (true) {
       val delivery = consumer.nextDelivery();
       val msg = new String(delivery.getBody());
 
-      context.actorOf(Props(new Actor{
+      context.actorOf(Props(new Actor {
         def receive = {
           case some: String => f(some);
         }

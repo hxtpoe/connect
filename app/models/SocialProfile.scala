@@ -1,11 +1,12 @@
 package models
 
 import datasources.{couchbase => cb}
-import models.Post._
+import org.reactivecouchbase.client.Counters
 import play.api.libs.json._
+
 import scala.concurrent.Await
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 case class FacebookProfile(id: String,
                            email: String,
@@ -16,19 +17,19 @@ case class FacebookProfile(id: String,
                            locale: String
                             )
 
-object FacebookProfile {
+object FacebookProfile extends Counters {
   implicit val fpFormat: Format[FacebookProfile] = Json.format[FacebookProfile]
-  implicit val bucket = cb.bucketOfUsers
+  implicit val bucket = cb.bucket
 
   def increment(): Int = {
-    Await.result(incrAndGet("users_counter", 1), 2 second)
+    Await.result(incrAndGet("users_counter", 1), 1 second)
   }
 
   def createOrMerge(profile: FacebookProfile): String = {
     Await.result(User.findUserIdByFacebookId(profile.id), 2 second) match {
       case Some(id) => id
       case None => {
-        val newIdenfifier = increment()
+        val newIdenfifier = "user::" + increment()
         bucket.set[JsValue](
           newIdenfifier.toString, Json.toJson(profile).as[JsObject] ++
             Json.obj(

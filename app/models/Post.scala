@@ -1,82 +1,169 @@
 package models
 
+import java.text.SimpleDateFormat
+import java.util.{Date, Locale, TimeZone}
+
+import com.couchbase.client.protocol.views.{ComplexKey, Query, Stale}
+import datasources.{couchbase => cb}
+import org.reactivecouchbase.client.OpResult
 import play.Play
 import play.api.libs.json._
-import datasources.{couchbase => cb}
-import scala.concurrent.{Future}
-import org.reactivecouchbase.client.{OpResult, Counters}
-import com.couchbase.client.protocol.views.{ComplexKey, Stale, Query}
+
+import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-case class Post(id: Option[String], message: String, author: String) {
-  def save(): Future[OpResult] = Post.save(this)
 
-  def remove(): Future[OpResult] = Post.remove(this)
+case class Post(
+                 id: Option[String],
+                 message: String,
+                 timestamp: Option[Int],
+                 uuid: Option[String],
+                 createdAt: Option[String],
+                 docType: Option[String]
+               ) {
 }
 
-object Post extends Counters {
-  implicit val bucket = cb.bucketOfPosts
+object Post {
+  implicit val bucket = cb.bucket
   implicit val fmt: Format[Post] = Json.format[Post]
 
-  val counterKey = "posts_counter"
-  val view = (if (Play.application().isDev) "dev_") + "posts"
+  val hotView = (if (Play.application().isDev) "dev_") + "hotPosts"
+  val coldView = (if (Play.application().isDev) "dev_") + "posts"
+
+  val timestamp: Long = System.currentTimeMillis / 1000
+  val date = new java.util.Date()
 
   def find(id: String): Future[Option[Post]] = {
     bucket.get(id)
   }
 
-  def save(tweet: Post): Future[OpResult] = {
-    bucket.set[Post](1.toString, tweet)
+  def getAll(userId: String, year: Int, week: Int): Future[List[Post]] = {
+    for (
+      posts <- bucket.get[Option[JsObject]](s"$userId::posts::$year::$week")
+    ) yield {
+      posts match {
+        case Some(posts) => posts.get.\("posts").as[List[Post]].sortBy(_.createdAt).reverse
+        case None => List()
+      }
+    }
   }
 
-  def remove(tweet: Post): Future[OpResult] = {
-    bucket.delete("1")
+  def create(id: String, userId: String, post: Post) = {
+    val now = new Date()
+    val dateFormatGmt = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH) // RFC 2822
+    dateFormatGmt.setTimeZone(TimeZone.getTimeZone("UTC+0"))
+    dateFormatGmt.format(now)
+
+    val documentId = userId + "::posts::" + year + "::" + weekOfYear
+
+    for (
+      storedPost <- bucket.get[JsObject](documentId)
+    ) yield {
+
+      storedPost.getOrElse(JsArray()) match {
+        case array if array == JsArray() => add(post, id, userId, documentId, dateFormatGmt.format(now)) // create
+        case posts => append(storedPost.get, post, id, userId, documentId, dateFormatGmt.format(now)) //append
+      }
+    }
   }
 
-  def remove(id: Int): Future[OpResult] = {
-    bucket.delete(id.toString)
+  def add(post: Post, uuid: String, userId: String, docId: String, stringDate: String): Future[OpResult] = {
+    val newPost =
+      Json.obj(// why is this Json, not an object
+        "posts" ->
+          Json.arr(
+            Json.obj(
+              "uuid" -> uuid,
+              "message" -> post.message
+            ) ++ Json.obj(
+              "createdAt" -> stringDate.toString,
+              "docType" -> "post")))
+
+    bucket.add[JsValue](docId, newPost)
   }
 
-  def increment(): Future[Int] = {
-    incrAndGet(counterKey, 1)
-  }
-
-  def create(id: String, tweet: Post): Future[OpResult] = {
-    val timestamp: Long = System.currentTimeMillis / 1000
-    val post: String = "post"
-
-    bucket.set[JsValue](id,
+  def append(storedPost: JsObject, post: Post, uuid: String, userId: String, docId: String, stringDate: String): Future[OpResult] = {
+    val newPost =
       Json.obj(
-        "author" -> tweet.author,
-        "message" -> tweet.message
+        "uuid" -> uuid,
+        "message" -> post.message
       ) ++ Json.obj(
-        "timestamp" -> timestamp, "t" -> post
-      ))
+        "createdAt" -> stringDate.toString,
+        "docType" -> "post")
+
+    val newListOfPosts = (storedPost \ "posts").as[JsArray] :+ newPost
+
+    bucket.set[JsObject](docId,
+      Json.obj(
+        "posts" -> newListOfPosts
+      )
+    )
   }
 
-  def findAllByUsername(username: String): Future[List[Post]] = {
-    bucket.find[Post](view, "allPosts")(
+  def getCached(userId: String): Future[Option[List[Post]]] = {
+    bucket.get[List[Post]](userId)
+  }
+
+  def getAndCache(ownerId: String, usersIds: List[String]): Future[List[Post]] = {
+    for {
+      timeline <- calculateTimeline(usersIds)
+    } yield {
+      bucket.set(ownerId, timeline)
+      timeline
+    }
+  }
+
+  def calculateTimeline(usersIds: List[String]): Future[List[Post]] = {
+    var li: List[Post] = List()
+    val futures = usersIds.map(fastUserPosts)
+
+    for {
+      list <- Future.sequence(futures)
+    } yield {
+      list.map(_.foreach(element => {
+        li = li :+ element
+      }))
+      li
+        .sortBy(_.timestamp)
+        .reverse
+    }
+  }
+
+  def fastUserPosts(userId: String): Future[List[Post]] =
+    bucket.get[List[Post]]("posts_" + userId).flatMap { cached =>
+      cached.map(list => Future.successful(list))
+        .getOrElse(userPosts(userId))
+    }
+
+  def userPosts(userId: String): Future[List[Post]] = {
+    val result = bucket.find[Post](hotView, "byAuthorWithTimestamp")(
       new Query()
-        .setRangeStart(ComplexKey.of(username + "\\u02ad"))
-        .setRangeEnd(ComplexKey.of(username))
-        .setDescending(true)
+        .setRangeStart(ComplexKey.of(JsArray(Seq(JsString(userId), JsNumber(1353930689)))))
+        .setRangeEnd(ComplexKey.of(JsArray(Seq(JsString(userId), JsNumber(1653930689)))))
+        .setDescending(false)
         .setIncludeDocs(true)
         .setLimit(25)
         .setInclusiveEnd(true)
-        .setStale(Stale.UPDATE_AFTER))
+        .setStale(Stale.OK))
+
+    result map (cached => cached match {
+      case list => bucket.set("posts_" + userId, list)
+    })
+
+    result
   }
 
-  def findAll(): Future[List[Post]] = {
-    bucket.find[Post](view, "allPosts")(
-      new Query()
-        .setIncludeDocs(true)
-        .setLimit(25)
-        .setStale(Stale.FALSE))
-  }
+  def weekOfYear = dayOfYear / 7
 
-  def init() = {
-    bucket.get(counterKey) onSuccess {
-      case None => bucket.set[Int](counterKey, 0)
-    }
+  def dayOfYear: Int = simpleDataFormat("D")
+
+  def year: Int = simpleDataFormat("YYYY")
+
+  def simpleDataFormat(code: String): Int = {
+    val now = new Date()
+    val day = new SimpleDateFormat(code, Locale.ENGLISH)
+    day.setTimeZone(TimeZone.getTimeZone("UTC+0"))
+    day.format(now).toInt
   }
 }

@@ -1,8 +1,7 @@
 package models
 
 import java.util
-
-import com.couchbase.client.java.view.{AsyncViewResult, AsyncViewRow, Stale => NewStale, ViewQuery}
+import com.couchbase.client.java.view.{Stale => NewStale, DefaultAsyncViewRow, AsyncViewResult, AsyncViewRow, ViewQuery}
 import datasources.couchbase
 import org.reactivecouchbase.play.PlayCouchbase
 import play.Play
@@ -17,11 +16,11 @@ import scala.concurrent.{Future, Promise}
 case class Follower(followerId: String) {}
 
 object Follower {
-  implicit val bucket = couchbase.bucketOfUsers
+  implicit val bucket = couchbase.bucket
   implicit val followerFormatter: Format[Follower] = Json.format[Follower]
   implicit val ec = PlayCouchbase.couchbaseExecutor
 
-  val defaultLimit = 20;
+  val defaultLimit = 10
 
   val view = (if (Play.application().isDev) "dev_" else "") + "followers"
 
@@ -32,10 +31,10 @@ object Follower {
     val result = datasources.newCouchbase.bucket.async()
       .query(
         ViewQuery
-          .from(view, "allV2")
-          .limit(defaultLimit)
+          .from(view, "all")
+          .limit(3000)
           .stale(NewStale.UPDATE_AFTER)
-          .key(userId)
+          .key(s"user::$userId")
           .inclusiveEnd(true)
       )
 
@@ -46,7 +45,7 @@ object Follower {
     })
       .map[String](new Func1[AsyncViewRow, String] {
       override def call(row: AsyncViewRow) = {
-        row.value.toString
+        row.id
       }
     })
 
@@ -65,6 +64,47 @@ object Follower {
     )
 
     followeePromise.future
+  }
 
+  def numberOfFollowers(userId: String): Future[Int] = {
+    val p = Promise[Int]()
+
+    val result = datasources.newCouchbase.bucket.async()
+      .query(
+        ViewQuery
+          .from(view, "count")
+          .reduce(true)
+          .limit(1)
+          .stale(NewStale.TRUE)
+          .inclusiveEnd(true)
+          .key(userId)
+      )
+
+    val ids = result.flatMap(new Func1[AsyncViewResult, Observable[AsyncViewRow]] {
+      override def call(result: AsyncViewResult) = {
+        result.rows().firstOrDefault(new DefaultAsyncViewRow(datasources.newCouchbase.bucket.async(), "0", "0", 0))
+      }
+    })
+
+    val numer = ids.map[Int](new Func1[AsyncViewRow, Int] {
+      override def call(row: AsyncViewRow) = {
+        row.value().asInstanceOf[Int]
+      }
+    })
+
+    numer.subscribe(
+      new Action1[Int] {
+        override def call(t1: Int): Unit = {
+          p.success(t1)
+        }
+      },
+      new Action1[Throwable] {
+        override def call(t1: Throwable): Unit = {
+          p.failure(t1)
+        }
+      }
+    )
+
+    p.future
   }
 }

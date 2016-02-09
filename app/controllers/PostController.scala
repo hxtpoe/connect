@@ -1,63 +1,57 @@
 package controllers
 
+import java.text.SimpleDateFormat
+import java.util.{Date, TimeZone, Locale}
+
+import actors.timeline.CalculateTimelineActor
+import akka.actor.Props
 import com.wordnik.swagger.annotations._
-import models.Post
+import models.{Follower, Post}
+import play.api.libs.concurrent.Akka
 import play.api.libs.json.{JsError, _}
 import play.api.mvc._
 import scala.concurrent.Future
+import play.api.Play.current
 import scala.concurrent.ExecutionContext.Implicits.global
 import javax.ws.rs.PathParam
 
 @Api(value = "/posts")
 object PostController extends Controller {
 
-  @ApiOperation(
-    nickname = "findByUsername",
-    value = "find posts by username",
-    response = classOf[Post],
-    responseContainer = "List",
-    produces = "application/json",
-    httpMethod = "GET")
-  @ApiResponses(Array(
-    new ApiResponse(code = 200, message = "Success"),
-    new ApiResponse(code = 400, message = "Bad Request")))
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "page", value = "page offset", required = false, dataType = "Int", paramType = "query")))
-  def findByUsername(
-                      @ApiParam(value = "username of the user to fetch") @PathParam("username") username: String) =
-    Action.async { request =>
-      Post.findAllByUsername(username) flatMap {
-        list => Future {
-          Ok(Json.toJson(list))
-        }
-      }
-    }
+  def system = play.api.libs.concurrent.Akka.system
 
-  @ApiOperation(nickname = "create", value = "create tweet")
+  val myActor = Akka.system.actorOf(Props[CalculateTimelineActor], name = "CalculateTimelineActor")
+
+  @ApiOperation(nickname = "create", value = "create post")
   @ApiResponses(Array(
     new ApiResponse(code = 200, message = "Success"),
     new ApiResponse(code = 400, message = "Bad Request")))
-  def create = Action.async(BodyParsers.parse.json) {
+  def create(userId: Int) = Action.async(BodyParsers.parse.json) {
     request =>
       val someJson = request.body.validate[Post]
 
-      someJson.fold(
-        errors => {
-          Future(BadRequest(Json.obj("status" -> "OK", "message" -> JsError.toFlatJson(errors))))
-        },
-        json => {
-          Post.increment.map {
-            case i: Int => {
-              Post.create(i.toString, json)
-              Ok(Json.obj("status" -> "OK", "message" -> ("tweet saved." + i.toString()))).withHeaders(LOCATION -> ("tweet id: " + i))
+      Future {
+        someJson.fold(
+          errors => {
+            BadRequest(Json.obj("status" -> "OK", "message" -> JsError.toFlatJson(errors)))
+          },
+          json => {
+            val uuid = java.util.UUID.randomUUID().toString()
+            Post.create(uuid, "user::" + userId.toString, json)
+
+            for {
+              followees <- Follower.followers(userId.toString, None)
+            } yield {
+              followees.map(myActor ! _.toString())
             }
+            Ok(Json.obj("status" -> JsString("created: " + uuid.toString()))).withHeaders(LOCATION -> ("id: " + uuid))
           }
-        }
-      )
+        )
+      }
   }
 
-  @ApiOperation(value = "find tweet by ID",
-    notes = "returns a tweet based on ID",
+  @ApiOperation(value = "find post by ID",
+    notes = "returns the post based on ID",
     response = classOf[Post],
     produces = "application/json",
     httpMethod = "GET"
@@ -77,7 +71,34 @@ object PostController extends Controller {
     }
   }
 
+  def posts(userId: Int, year: Int, week: Int) = Action.async {
+    for (
+      posts <- Post.getAll(s"user::$userId", year, week)
+    ) yield {
+      Ok(Json.toJson(posts))
+    }
+  }
+
+  def latestPosts(userId: Int) = Action.async {
+    for (
+      posts <- Post.getAll(s"user::$userId", year, dayOfYear / 7)
+    ) yield {
+      Ok(Json.toJson(posts))
+    }
+  }
+
   def update(id: Long) = TODO
 
   def delete(id: Long) = TODO
+
+  def dayOfYear: Int = simpleDataFormat("D")
+
+  def year: Int = simpleDataFormat("YYYY")
+
+  def simpleDataFormat(code: String): Int = {
+    val now = new Date()
+    val day = new SimpleDateFormat(code, Locale.ENGLISH)
+    day.setTimeZone(TimeZone.getTimeZone("UTC+0"))
+    day.format(now).toInt
+  }
 }

@@ -3,7 +3,7 @@ package controllers
 import javax.ws.rs.{PathParam, QueryParam}
 
 import com.wordnik.swagger.annotations._
-import models.{FollowPair, Followee, Follower}
+import models.{Follower, User}
 import play.api.libs.json._
 import play.api.mvc._
 
@@ -11,65 +11,19 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 @Api(value = "/followers")
 object FollowController extends Controller {
-
-  @ApiOperation(
-    nickname = "getFollowees",
-    value = "get followees",
-    produces = "application/json",
-    httpMethod = "GET")
-  @ApiResponses(
-    Array(
-      new ApiResponse(code = 200, message = "Success")
-    ))
-  def getFolloweesV1(
-                      @ApiParam(value = "userId") @PathParam("userId") userId: String,
-                      @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) =
+  def getFollowees(
+                    @ApiParam(value = "userId") @PathParam("userId") userId: String,
+                    @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) =
     Action.async {
       for {
-        followers <- Followee.followees1(userId.toString, skip)
-        counter <- Followee.numberOfFollowees(userId.toString)
+        user <- User.find(userId.toString)
       } yield {
-
-        val simpleList = followers.map(_.followeeId)
-
         Ok(Json.obj(
-          "rows" -> Json.toJson(simpleList),
-          "count" -> Json.toJson(counter)
+          "rows" -> user.get.followees.getOrElse(List()).slice(skip.getOrElse(0), skip.getOrElse(0) + 10),
+          "count" -> user.get.followees.getOrElse(List()).size
         ))
       }
     }
-
-  def getFolloweesV2(
-                      @ApiParam(value = "userId") @PathParam("userId") userId: String,
-                      @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) = Action.async {
-
-    for {
-      x <- Followee.followees2(userId.toString, skip)
-      counter <- Followee.numberOfFollowees(userId.toString)
-    } yield {
-
-      Ok(Json.obj(
-        "rows" -> Json.toJson(x),
-        "count" -> Json.toJson(counter)
-      ))
-    }
-  }
-
-  def getFollowees(
-                    @ApiParam(value = "userId") @PathParam("userId") userId: String,
-                    @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) = Action.async {
-
-    for {
-      x <- Followee.followees(userId.toString, skip)
-      counter <- Followee.numberOfFollowees(userId.toString)
-    } yield {
-
-      Ok(Json.obj(
-        "rows" -> Json.toJson(x),
-        "count" -> Json.toJson(counter)
-      ))
-    }
-  }
 
   @ApiOperation(
     nickname = "getFollowers",
@@ -93,7 +47,6 @@ object FollowController extends Controller {
       }
     }
 
-
   @ApiOperation(
     nickname = "follow",
     value = "add followee",
@@ -109,7 +62,7 @@ object FollowController extends Controller {
               @ApiParam(value = "followeeId") @PathParam("followeeId") followeeId: Int) =
     Action {
       request =>
-        FollowPair.follow(followerId.toString, followeeId.toString)
+        User.follow(followerId.toString, followeeId.toString)
         Ok("added")
     }
 
@@ -127,7 +80,7 @@ object FollowController extends Controller {
                 @ApiParam(value = "followeeId") @PathParam("followeeId") followeeId: Int) =
     Action {
       request =>
-        FollowPair.unfollow(followerId.toString, followeeId.toString)
+        User.unfollow(followerId.toString, followeeId.toString)
         Ok("unfollowed")
     }
 }

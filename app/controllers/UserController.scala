@@ -1,6 +1,7 @@
 package controllers
 
 import javax.ws.rs.PathParam
+
 import com.wordnik.swagger.annotations._
 import models.User
 import play.api.libs.json._
@@ -20,15 +21,15 @@ object UserController extends Controller {
     Array(
       new ApiResponse(code = 200, message = "Success")
     ))
-  def getUser(
-               @ApiParam(value = "userId") @PathParam("userId") userId: Int) =
+  def user(
+            @ApiParam(value = "userId") @PathParam("userId") userId: Int) =
     Action.async {
       for {
-        user <- User.find(userId.toLong)
+        user <- User.find(userId.toString)
       } yield {
         user match {
           case Some(u) => Ok(Json.toJson(user))
-          case None => NotFound("not found")
+          case None => NotFound("User not found!")
         }
       }
     }
