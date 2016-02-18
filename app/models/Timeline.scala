@@ -8,10 +8,42 @@ import play.api.libs.json._
 
 import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 
 object Timeline extends DataPartitionable {
+  type notEmptyTimeLineResultType = (List[Post], Int)
   implicit val bucket = couchbase.bucket
+
+  def get(userId: Int, year: Int)(day: Int): Future[Option[List[Post]]] = {
+    for {
+      posts <- bucket.get[Option[JsObject]](s"user::$userId::timelines::$year::$day")
+    } yield {
+      posts match {
+        case Some(posts) => Some(posts.get.\("posts").as[List[Post]])
+        case None => None
+      }
+    }
+  }
+
+  def firstNotEmpty(userId: Int, year: Int)(day: Int): Future[notEmptyTimeLineResultType] = {
+    val prom = Promise[notEmptyTimeLineResultType]
+
+    def recurse(userId: Int, year: Int)(day: Int): Future[Object] = {
+      for {
+        p <- get(userId, year)(day)
+      } yield {
+        p match {
+          case Some(posts: List[Post]) if posts.nonEmpty => prom.success((posts, day))
+          case None if day > 0 => recurse(userId, year)(day - 1)
+          case None if day == 0 => prom.failure(new Exception("I went through all year and there is no timeline to show!"))
+        }
+      }
+    }
+
+    recurse(userId, year)(day)
+    prom.future
+  }
+
 
   def currentWeekTimeline(userId: String) = {
     val numbersOfDaysInLastWeek = List.range(1 + 7 * (currentDayOfYear / 7), currentDayOfYear + 1) match {
@@ -45,8 +77,6 @@ object Timeline extends DataPartitionable {
 
         val y = li.sortBy(_.createdAt).reverse
 
-        //      println(numbersOfDaysInLastWeek)
-
         numbersOfDaysInLastWeek.map(numberOfADay => {
           val postsForGivenDay = y.filter({ x =>
             val dt = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH)
@@ -68,14 +98,5 @@ object Timeline extends DataPartitionable {
     }
   }
 
-  def get(userId: Int, year: Int, day: Int): Future[List[Post]] = {
-    for (
-      posts <- bucket.get[Option[JsObject]](s"user::$userId::timelines::$year::$day")
-    ) yield {
-      posts match {
-        case Some(posts) => posts.get.\("posts").as[List[Post]]
-        case None => List()
-      }
-    }
-  }
+
 }
