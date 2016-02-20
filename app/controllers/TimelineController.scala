@@ -7,25 +7,27 @@ import play.api.mvc._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-object TimelineController extends Controller with DataPartitionable  {
+object TimelineController extends Controller with DataPartitionable {
   def timeline(userId: Int, year: Int, day: Int) = Action.async {
-    for (posts <- Timeline.get(userId, year, day))
-      yield {
-        Ok(Json.obj(
-          "posts" -> posts,
-          "next-page" -> routes.TimelineController.timeline(userId, previousPageYearNumber(year, day), previousPageDayNumber(year, day)).toString()
-        ))
-      }
+    notEmptyTimeline(userId, year, day)
   }
 
   def latestTimeline(userId: Int) = Action.async {
-    for (posts <- Timeline.get(userId, currentYear, currentDayOfYear))
-      yield {
-        Ok(Json.obj(
-          "posts" -> posts,
-          "next-page" -> routes.TimelineController.timeline(userId, previousPageYearNumber(currentYear, currentDayOfYear), previousPageDayNumber(currentYear, currentDayOfYear)).toString()
-        ))
-      }
+    notEmptyTimeline(userId, currentYear, currentDayOfYear)
+  }
+
+  private def notEmptyTimeline(userId: Int, year: Int, day: Int): Future[SimpleResult] = {
+    val future = for {
+      (posts, day) <- Timeline.firstNotEmpty(userId, currentYear)(day)
+    } yield {
+      Ok(Json.obj(
+        "posts" -> posts,
+        "nextPage" -> routes.TimelineController.timeline(year, previousPageYearNumber(currentYear, day), previousPageDayNumber(currentYear, day)).toString()
+      ))
+    }
+    future.recover {
+      case ex: Exception => NotFound(ex.getMessage)
+    }
   }
 
   def calcLatestTimeline(userId: Int) = Action.async {
