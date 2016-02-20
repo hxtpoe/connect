@@ -3,7 +3,7 @@ import sbt._
 
 name := "connect"
 
-scalaVersion := "2.11.1"
+scalaVersion := "2.11.2"
 
 version := "1.0-SNAPSHOT"
 
@@ -12,9 +12,9 @@ val appDependencies = Seq(
   ws,
   "com.google.code.gson" % "gson" % "2.2.4",
   "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.2",
-  "com.typesafe.akka" %% "akka-actor" % "2.3.4",
-  "com.typesafe.akka" %% "akka-slf4j" % "2.3.4",
-  "com.typesafe.akka" %% "akka-testkit" % "2.3.4" % "test",
+  "com.typesafe.akka" %% "akka-actor" % "2.3.6",
+  "com.typesafe.akka" %% "akka-slf4j" % "2.3.6",
+  "com.typesafe.akka" %% "akka-testkit" % "2.3.6" % "test",
   "org.reactivecouchbase" %% "reactivecouchbase-play" % "0.3",
   "com.nimbusds" % "nimbus-jose-jwt" % "2.22.1",
   "com.wordnik" %% "swagger-play2" % "1.3.12",

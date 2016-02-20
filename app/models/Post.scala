@@ -18,6 +18,7 @@ case class Post(
                  message: String,
                  timestamp: Option[Int],
                  uuid: Option[String],
+                 userId: Option[String],
                  createdAt: Option[String],
                  docType: Option[String]
                ) {
@@ -73,7 +74,8 @@ object Post {
           Json.arr(
             Json.obj(
               "uuid" -> uuid,
-              "message" -> post.message
+              "message" -> post.message,
+              "userId" -> userId
             ) ++ Json.obj(
               "createdAt" -> stringDate.toString,
               "docType" -> "post")))
@@ -85,7 +87,8 @@ object Post {
     val newPost =
       Json.obj(
         "uuid" -> uuid,
-        "message" -> post.message
+        "message" -> post.message,
+        "userId" -> userId
       ) ++ Json.obj(
         "createdAt" -> stringDate.toString,
         "docType" -> "post")
