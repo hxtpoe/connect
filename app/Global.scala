@@ -13,9 +13,9 @@ object Global extends GlobalSettings {
 
   override def onStart(app: Application): Unit = {
     println("App staring...")
-//    val connection = RabbitMQConnection.getConnection
-//    val sendingChannel1 = connection.createChannel()
-//    Sender.startSending
+    //    val connection = RabbitMQConnection.getConnection
+    //    val sendingChannel1 = connection.createChannel()
+    //    Sender.startSending
     User.init()
 
     TimeZone.setDefault(TimeZone.getTimeZone("UTC+0"))
@@ -24,7 +24,7 @@ object Global extends GlobalSettings {
   override def onStop(app: Application) {
     datasources.newCouchbase.cluster.disconnect()
     println("App stoping...")
-//    Sender.stopEverything
+    //    Sender.stopEverything
     cb.close
   }
 }

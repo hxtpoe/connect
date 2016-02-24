@@ -22,7 +22,7 @@ object TimelineController extends Controller with DataPartitionable {
     } yield {
       Ok(Json.obj(
         "posts" -> posts,
-        "nextPage" -> routes.TimelineController.timeline(year, previousPageYearNumber(currentYear, day), previousPageDayNumber(currentYear, day)).toString()
+        "nextPage" -> routes.TimelineController.timeline(userId, previousPageYearNumber(currentYear, day), previousPageDayNumber(currentYear, day)).toString()
       ))
     }
     future.recover {

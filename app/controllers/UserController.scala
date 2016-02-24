@@ -33,4 +33,12 @@ object UserController extends Controller {
         }
       }
     }
+
+  def usersCount() = Action.async {
+    for {
+      count <- User.numberOfUsers()
+    } yield {
+       Ok(Json.obj("count" -> count))
+    }
+  }
 }

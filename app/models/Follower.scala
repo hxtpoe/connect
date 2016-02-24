@@ -33,7 +33,7 @@ object Follower {
         ViewQuery
           .from(view, "all")
           .limit(3000)
-          .stale(NewStale.UPDATE_AFTER)
+          .stale(NewStale.FALSE)
           .key(s"user::$userId")
           .inclusiveEnd(true)
       )
@@ -65,6 +65,7 @@ object Follower {
 
     followeePromise.future
   }
+
 
   def numberOfFollowers(userId: String): Future[Int] = {
     val p = Promise[Int]()
