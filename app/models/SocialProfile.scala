@@ -15,7 +15,7 @@ case class FacebookProfile(id: String,
                            last_name: String,
                            link: String,
                            locale: String
-                            )
+                          )
 
 object FacebookProfile extends Counters {
   implicit val fpFormat: Format[FacebookProfile] = Json.format[FacebookProfile]
@@ -35,7 +35,8 @@ object FacebookProfile extends Counters {
             Json.obj(
               "provider" -> "fb",
               "type" -> "user",
-              "created_at" -> getTimestamp()
+              "created_at" -> getTimestamp(),
+              "followees" -> JsArray(Seq(JsString(newIdenfifier)))
             ))
         newIdenfifier.toString
       }

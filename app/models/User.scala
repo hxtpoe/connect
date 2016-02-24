@@ -1,13 +1,16 @@
 package models
 
+import com.couchbase.client.java.view._
 import com.couchbase.client.protocol.views.{Stale, ComplexKey, Query}
 import datasources.{couchbase => cb}
 import org.reactivecouchbase.client.{RawRow, OpResult}
 import play.Play
 import play.api.libs.json.{Json, Format}
+import rx.Observable
+import rx.functions.{Action1, Func1}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import scala.concurrent.Future
+import scala.concurrent.{Promise, Future}
 
 case class RegisteredAccount(
                               email: String,
@@ -34,6 +37,7 @@ object User {
   implicit val bucket = cb.bucket
   implicit val fmt: Format[User] = Json.format[User]
   val viewName = (if (Play.application().isDev) "dev_") + "users"
+
 
   def find(id: String): Future[Option[User]] = {
     bucket.get("user::" + id)
@@ -101,6 +105,47 @@ object User {
     }
   }
 
+  def numberOfUsers(): Future[Int] = {
+    val p = Promise[Int]()
+
+    val result = datasources.newCouchbase.bucket.async()
+      .query(
+        ViewQuery
+          .from(viewName, "count")
+          .reduce(true)
+          .limit(1)
+          .stale(com.couchbase.client.java.view.Stale.TRUE)
+          .inclusiveEnd(true)
+      )
+
+    val ids = result.flatMap(new Func1[AsyncViewResult, Observable[AsyncViewRow]] {
+      override def call(result: AsyncViewResult) = {
+        result.rows().firstOrDefault(new DefaultAsyncViewRow(datasources.newCouchbase.bucket.async(), "0", "0", 0))
+      }
+    })
+
+    val numer = ids.map[Int](new Func1[AsyncViewRow, Int] {
+      override def call(row: AsyncViewRow) = {
+        row.value().asInstanceOf[Int]
+      }
+    })
+
+    numer.subscribe(
+      new Action1[Int] {
+        override def call(t1: Int): Unit = {
+          p.success(t1)
+        }
+      },
+      new Action1[Throwable] {
+        override def call(t1: Throwable): Unit = {
+          p.failure(t1)
+        }
+      }
+    )
+
+    p.future
+  }
+
   def save(user: User): Future[OpResult] = {
     bucket.set[User](1.toString, user)
   }
@@ -112,8 +157,8 @@ object User {
   def init() = {
     bucket.get("users_counter") onSuccess {
       case None => {
-        bucket.set[Int]("users_counter", 0)
-        generators.UserGenerator.runUsers()
+        bucket.set[Int]("users_counter", 102)
+        //        generators.UserGenerator.runUsers()
       }
     }
   }

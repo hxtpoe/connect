@@ -19,7 +19,7 @@ object FollowController extends Controller {
         user <- User.find(userId.toString)
       } yield {
         Ok(Json.obj(
-          "rows" -> user.get.followees.getOrElse(List()).slice(skip.getOrElse(0), skip.getOrElse(0) + 10),
+          "rows" -> user.get.followees.getOrElse(List()).slice(skip.getOrElse(0), skip.getOrElse(0) + 40),
           "count" -> user.get.followees.getOrElse(List()).size
         ))
       }

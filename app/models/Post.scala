@@ -8,6 +8,7 @@ import datasources.{couchbase => cb}
 import org.reactivecouchbase.client.OpResult
 import play.Play
 import play.api.libs.json._
+import play.cache.Cache
 
 import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -39,14 +40,25 @@ object Post {
   }
 
   def getAll(userId: String, year: Int, week: Int): Future[List[Post]] = {
-    for (
-      posts <- bucket.get[Option[JsObject]](s"$userId::posts::$year::$week")
-    ) yield {
-      posts match {
-        case Some(posts) => posts.get.\("posts").as[List[Post]].sortBy(_.createdAt).reverse
-        case None => List()
+    val key = s"$userId::posts::$year::$week"
+//    val cached = Cache.get(key).asInstanceOf[List[Post]]
+
+//    if(cached != null) {
+//      Future(cached)
+//    } else {
+      for (
+        posts <- bucket.get[Option[JsObject]](s"$userId::posts::$year::$week")
+      ) yield {
+        posts match {
+          case Some(posts) => {
+            val test = posts.get.\("posts").as[List[Post]].sortBy(_.createdAt).reverse
+            Cache.set(key, test)
+            test
+          }
+          case None => List()
+        }
       }
-    }
+//    }
   }
 
   def create(id: String, userId: String, post: Post) = {

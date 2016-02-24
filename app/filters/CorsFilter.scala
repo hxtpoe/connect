@@ -7,8 +7,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object CorsFilter extends Filter {
   override def apply(next: RequestHeader => Future[Result])(request: RequestHeader): Future[Result] = {
     next(request).map {
-      result => result.withHeaders("Access-Control-Allow-Origin" -> "*",
-        "Allow" -> "*",
+      result => result.withHeaders("Access-Control-Allow-Origin" -> "http://localhost:3000",
+        "Allow" -> "http://localhost:3000",
+        "Access-Control-Allow-Credentials" -> "true",
         "Access-Control-Allow-Methods" -> "POST, GET, OPTIONS, PUT, DELETE",
         "Access-Control-Allow-Headers" -> "x-requested-with, Content-Type, token, if-none-match, origin, authorization, accept, client-security-token"
       )
