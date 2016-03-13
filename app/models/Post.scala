@@ -12,7 +12,7 @@ import play.cache.Cache
 
 import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Promise, Future}
 
 case class Post(
                  id: Option[String],
@@ -39,26 +39,41 @@ object Post {
     bucket.get(id)
   }
 
-  def getAll(userId: String, year: Int, week: Int): Future[List[Post]] = {
-    val key = s"$userId::posts::$year::$week"
-//    val cached = Cache.get(key).asInstanceOf[List[Post]]
+  def getAll(userId: Int, year: Int, week: Int): Future[Option[List[Post]]] = {
+    val key = s"user::$userId::posts::$year::$week"
+    for (
+      posts <- bucket.get[Option[JsObject]](key)
+    ) yield {
+      posts match {
+        case Some(posts) => {
+          val test = posts.get.\("posts").as[List[Post]].sortBy(_.createdAt).reverse
+          Cache.set(key, test)
+          Some(test)
+        }
+        case None => None
+      }
+    }
+  }
 
-//    if(cached != null) {
-//      Future(cached)
-//    } else {
-      for (
-        posts <- bucket.get[Option[JsObject]](s"$userId::posts::$year::$week")
-      ) yield {
-        posts match {
-          case Some(posts) => {
-            val test = posts.get.\("posts").as[List[Post]].sortBy(_.createdAt).reverse
-            Cache.set(key, test)
-            test
-          }
-          case None => List()
+  type notEmptyPostResultType = (List[Post], Int)
+
+  def firstNotEmpty(userId: Int, year: Int)(week: Int): Future[notEmptyPostResultType] = {
+    val prom = Promise[notEmptyPostResultType]
+
+    def recurse(userId: Int, year: Int)(week: Int): Future[Object] = {
+      for {
+        p <- getAll(userId, year, week)
+      } yield {
+        p match {
+          case Some(posts: List[Post]) if posts.nonEmpty => prom.success((posts, week))
+          case None if week > 0 => recurse(userId, year)(week - 1)
+          case None if week == 0 => prom.failure(new Exception("I went through all year and there is no timeline to show!"))
         }
       }
-//    }
+    }
+
+    recurse(userId, year)(week + 1)
+    prom.future
   }
 
   def create(id: String, userId: String, post: Post) = {
@@ -204,6 +219,16 @@ trait DataPartitionable {
     day - 1 match {
       case 0 => year - 1
       case _ => year
+    }
+  }
+
+  val NUMBER_OF_WEEKS_IN_A_YEAR = 52
+
+  def previousPageWeekNumber(year: Int, week: Int): Int = {
+
+    week - 1 match {
+      case 0 => NUMBER_OF_WEEKS_IN_A_YEAR
+      case _ => week - 1
     }
   }
 

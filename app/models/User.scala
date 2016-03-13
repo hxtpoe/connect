@@ -33,6 +33,7 @@ case class User(
                  followees: Option[List[String]]
                )
 
+
 object User {
   implicit val bucket = cb.bucket
   implicit val fmt: Format[User] = Json.format[User]
@@ -162,4 +163,10 @@ object User {
       }
     }
   }
+}
+
+class UserId(val id: Int)
+
+object UserId {
+  implicit def idToString(userId: UserId): String = s"user::$userId.id"
 }
