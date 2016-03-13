@@ -71,18 +71,24 @@ object PostController extends Controller with DataPartitionable {
   }
 
   def posts(userId: Int, year: Int, week: Int) = Action.async {
-    for (
-      posts <- Post.getAll(s"user::$userId", year, week)
-    ) yield {
-      Ok(Json.toJson(posts))
-    }
+    notEmptyPosts(userId, year, week)
   }
 
   def latestPosts(userId: Int) = Action.async {
-    for (
-      posts <- Post.getAll(s"user::$userId", year, dayOfYear / 7)
-    ) yield {
-      Ok(Json.toJson(posts))
+    notEmptyPosts(userId, currentYear, currentWeekOfYear)
+  }
+
+  private def notEmptyPosts(userId: Int, year: Int, week: Int): Future[Result] = {
+    val future = for {
+      (posts, weekOfPosts) <- Post.firstNotEmpty(userId, currentYear)(week)
+    } yield {
+      Ok(Json.obj(
+        "posts" -> posts,
+        "nextPage" -> routes.PostController.posts(userId, previousPageYearNumber(currentYear, weekOfPosts), previousPageWeekNumber(currentYear, weekOfPosts - 1)).toString()
+      ))
+    }
+    future.recover {
+      case ex: Exception => NotFound(ex.getMessage)
     }
   }
 

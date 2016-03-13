@@ -65,13 +65,13 @@ object Timeline extends DataPartitionable {
       users <- User.find(id).map(_.get.followees).map(_.get)
     } yield {
       var li: List[Post] = List()
-      val futures = users.map(Post.getAll(_, currentYear, week))
+      val futures = users.map(uId => Post.getAll(uId.drop(6).toInt, currentYear, week))
 
       for {
         list <- Future.sequence(futures)
       } yield {
         list.map(_.foreach(element => {
-          li = li :+ element
+          li = li ::: element
         }))
 
         val y = li.sortBy(_.createdAt).reverse
@@ -96,6 +96,4 @@ object Timeline extends DataPartitionable {
       }
     }
   }
-
-
 }

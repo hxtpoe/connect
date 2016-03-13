@@ -16,7 +16,7 @@ object TimelineController extends Controller with DataPartitionable {
     notEmptyTimeline(userId, currentYear, currentDayOfYear)
   }
 
-  private def notEmptyTimeline(userId: Int, year: Int, day: Int): Future[SimpleResult] = {
+  private def notEmptyTimeline(userId: Int, year: Int, day: Int): Future[Result] = {
     val future = for {
       (posts, day) <- Timeline.firstNotEmpty(userId, currentYear)(day)
     } yield {
