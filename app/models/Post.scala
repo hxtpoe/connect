@@ -21,8 +21,17 @@ case class Post(
                  uuid: Option[String],
                  userId: Option[String],
                  createdAt: Option[String],
-                 docType: Option[String]
+                 docType: Option[String],
+                 user: Option[BaseUser]
                ) {
+}
+
+object PostJoin {
+  def apply(post: Post, user: BaseUser) = {
+    post match {
+      case Post(id, message, timestamp, uuid, userId, createdAt, docType, _) => new Post(id, message, timestamp, uuid, userId, createdAt, docType, Some(user))
+    }
+  }
 }
 
 object Post {

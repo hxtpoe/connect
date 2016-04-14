@@ -21,6 +21,24 @@ case class SocialAccounts(
                            facebook: Option[FacebookProfile]
                          )
 
+case class BaseUser(
+                     id: Option[String],
+                     first_name: String,
+                     gender: String,
+                     last_name: String,
+                     link: String
+                   )
+
+trait NewBaseUser {
+  val id: Option[String]
+  val first_name: String
+  val gender: String
+  val last_name: String
+  val link: String
+}
+
+//case class newUser() extends NewBaseUser
+
 case class User(
                  id: Option[String],
                  email: String,
@@ -34,14 +52,28 @@ case class User(
                )
 
 
+object BaseUser {
+  implicit val fmt: Format[BaseUser] = Json.format[BaseUser]
+}
+
 object User {
   implicit val bucket = cb.bucket
   implicit val fmt: Format[User] = Json.format[User]
+
   val viewName = (if (Play.application().isDev) "dev_") + "users"
 
 
   def find(id: String): Future[Option[User]] = {
     bucket.get("user::" + id)
+  }
+
+  def findBase(id: String): Future[Option[BaseUser]] = {
+    bucket.get[BaseUser]("user::" + id)
+  }
+
+  def newfind(id: String): Future[Option[BaseUser]] = {
+
+    bucket.get[BaseUser]("user::" + id)
   }
 
   def findUserIdByFacebookId(fbId: String): Future[Option[String]] = {

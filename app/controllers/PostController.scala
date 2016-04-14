@@ -81,9 +81,11 @@ object PostController extends Controller with DataPartitionable {
   private def notEmptyPosts(userId: Int, year: Int, week: Int): Future[Result] = {
     val future = for {
       (posts, weekOfPosts) <- Post.firstNotEmpty(userId, currentYear)(week)
+      postsWithBaseUserProfile <- joiners.UserJoiner(posts)
     } yield {
+
       Ok(Json.obj(
-        "posts" -> posts,
+        "posts" -> postsWithBaseUserProfile,
         "nextPage" -> routes.PostController.posts(userId, previousPageYearNumber(currentYear, weekOfPosts), previousPageWeekNumber(currentYear, weekOfPosts - 1)).toString()
       ))
     }
