@@ -19,9 +19,10 @@ object TimelineController extends Controller with DataPartitionable {
   private def notEmptyTimeline(userId: Int, year: Int, day: Int): Future[Result] = {
     val future = for {
       (posts, day) <- Timeline.firstNotEmpty(userId, currentYear)(day)
+      postsWithBaseUserProfile <- joiners.UserJoiner(posts)
     } yield {
       Ok(Json.obj(
-        "posts" -> posts,
+        "posts" -> postsWithBaseUserProfile,
         "nextPage" -> routes.TimelineController.timeline(userId, previousPageYearNumber(currentYear, day), previousPageDayNumber(currentYear, day)).toString()
       ))
     }

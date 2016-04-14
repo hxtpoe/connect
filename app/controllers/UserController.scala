@@ -11,7 +11,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 @Api(value = "/users")
 object UserController extends Controller {
-
   @ApiOperation(
     nickname = "getUser",
     value = "get user",
@@ -25,7 +24,7 @@ object UserController extends Controller {
             @ApiParam(value = "userId") @PathParam("userId") userId: Int) =
     Action.async {
       for {
-        user <- User.find(userId.toString)
+        user <- User.newfind(userId.toString)
       } yield {
         user match {
           case Some(u) => Ok(Json.toJson(user))
