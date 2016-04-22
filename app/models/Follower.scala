@@ -24,8 +24,17 @@ object Follower {
 
   val view = (if (Play.application().isDev) "dev_" else "") + "followers"
 
-  def followers(userId: String, skip: Option[Int]): Future[List[String]] = {
+  def followers(userId: String, skip: Option[Int]) = {
+    for {
+      f <- followersIds(userId, skip)
+      g = f.take(40)
+      profilesMap <- Future.sequence(g.map(id => User.findBase(UserId(id))))
+    } yield {
+      profilesMap
+    }
+  }
 
+  def followersIds(userId: String, skip: Option[Int]): Future[List[String]] = {
     val followeePromise = Promise[List[String]]()
 
     val result = datasources.newCouchbase.bucket.async()
@@ -65,7 +74,6 @@ object Follower {
 
     followeePromise.future
   }
-
 
   def numberOfFollowers(userId: String): Future[Int] = {
     val p = Promise[Int]()

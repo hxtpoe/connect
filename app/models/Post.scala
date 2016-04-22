@@ -74,7 +74,7 @@ object Post {
         p <- getAll(userId, year, week)
       } yield {
         p match {
-          case Some(posts: List[Post]) if posts.nonEmpty => prom.success((posts, week))
+          case Some(posts: List[Post]) if posts.nonEmpty => prom.success((posts.sortBy(_.createdAt).reverse, week))
           case None if week > 0 => recurse(userId, year)(week - 1)
           case None if week == 0 => prom.failure(new Exception("I went through all year and there is no timeline to show!"))
         }

@@ -33,6 +33,28 @@ object UserController extends Controller {
       }
     }
 
+  @ApiOperation(
+    nickname = "getExtendedUser",
+    value = "get extended  user",
+    produces = "application/json",
+    httpMethod = "GET")
+  @ApiResponses(
+    Array(
+      new ApiResponse(code = 200, message = "Success")
+    ))
+  def extendedUser(
+            @ApiParam(value = "userId") @PathParam("userId") userId: Int) =
+    Action.async {
+      for {
+        user <- User.find(userId.toString)
+      } yield {
+        user match {
+          case Some(u) => Ok(Json.toJson(user))
+          case None => NotFound("User not found!")
+        }
+      }
+    }
+
   def usersCount() = Action.async {
     for {
       count <- User.numberOfUsers()

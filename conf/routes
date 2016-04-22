@@ -19,6 +19,7 @@ GET            /assets/*file                                     controllers.Ass
 
 GET            /api/users/count                                  controllers.UserController.usersCount()
 GET            /api/user/:userId                                 controllers.UserController.user(userId: Int)
+GET            /api/user/:userId/extendedProfile                 controllers.UserController.extendedUser(userId: Int)
 GET            /api/user/:userId/posts                           controllers.PostController.latestPosts(userId: Int)
 GET            /api/user/:userId/posts/:year/:week               controllers.PostController.posts(userId: Int, year: Int, week: Int)
 POST           /api/user/:userId/posts                           controllers.PostController.create(userId: Int)

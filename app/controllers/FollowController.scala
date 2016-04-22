@@ -9,7 +9,7 @@ import play.api.mvc._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-@Api(value = "/followers")
+@Api(value = "/followees")
 object FollowController extends Controller {
   def getFollowees(
                     @ApiParam(value = "userId") @PathParam("userId") userId: String,
@@ -17,9 +17,10 @@ object FollowController extends Controller {
     Action.async {
       for {
         user <- User.find(userId.toString)
+        f <- User.getFollowees(user.get, skip)
       } yield {
         Ok(Json.obj(
-          "rows" -> user.get.followees.getOrElse(List()).slice(skip.getOrElse(0), skip.getOrElse(0) + 40),
+          "followees" -> f,
           "count" -> user.get.followees.getOrElse(List()).size
         ))
       }
@@ -39,7 +40,29 @@ object FollowController extends Controller {
                     @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) =
     Action.async {
       for {
-        followers <- Follower.followers(userId.toString, skip)
+        followers <- Follower.followers(userId, skip)
+      } yield {
+        Ok(Json.obj(
+          "rows" -> Json.toJson(followers)
+        ))
+      }
+    }
+
+  @ApiOperation(
+    nickname = "getRichFollowers",
+    value = "get full followers",
+    produces = "application/json",
+    httpMethod = "GET")
+  @ApiResponses(
+    Array(
+      new ApiResponse(code = 200, message = "Success")
+    ))
+  def getRichFollowers(
+                        @ApiParam(value = "userId") @PathParam("userId") userId: String,
+                        @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) =
+    Action.async {
+      for {
+        followers <- Follower.followersIds(userId.toString, skip)
       } yield {
         Ok(Json.obj(
           "rows" -> Json.toJson(followers)
