@@ -43,7 +43,7 @@ object Follower {
           .from(view, "all")
           .limit(3000)
           .stale(NewStale.FALSE)
-          .key(s"user::$userId")
+          .key(s"$userId")
           .inclusiveEnd(true)
       )
 

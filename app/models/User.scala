@@ -60,13 +60,14 @@ object User {
   }
 
   def findBase(id: UserId): Future[Option[BaseUser]] = {
+    println(id)
     bucket.get[BaseUser](id)
   }
 
   def getFollowees(user: User, skip:Option[Int] = Some(0)) = {
     val followees = user.followees.getOrElse(List())
     val followeesIds = followees.slice(skip.getOrElse(0), skip.getOrElse(0) + 40)
-    val map = followeesIds.map(id => id.drop(6) -> User.findBase(UserId(id))).toMap // id.drop(6) should disapear..
+    val map = followeesIds.map(id => id -> User.findBase(id)).toMap // id.drop(6) should disapear..
 
     for {
         profilesMap <- Future.traverse(map) { case (k, fv) => fv.map(k -> _) } map (_.toMap)
@@ -99,8 +100,8 @@ object User {
       user <- User.find(userId)
     } yield {
       val followees = user.get.followees.getOrElse(List())
-      if (!followees.contains("user::" + followeeId)) {
-        val newFolloweesList = followees :+ ("user::" + followeeId)
+      if (!followees.contains(followeeId)) {
+        val newFolloweesList = followees :+ followeeId
         bucket.set("user::" + userId,
           User(
             user.get.id,
@@ -122,10 +123,10 @@ object User {
       user <- User.find(userId)
     } yield {
       val followees = user.get.followees.getOrElse(List())
-      if (followees.contains(followeeId.toInt)) {
-        val newFolloweesList = followees.take(followees.indexOf(followeeId.toInt)) ++ followees.drop(followees.indexOf(followeeId.toInt) + 1)
+      if (followees.contains(followeeId)) {
+        val newFolloweesList = followees.take(followees.indexOf(followeeId)) ++ followees.drop(followees.indexOf(followeeId) + 1)
 
-        bucket.set(userId,
+        bucket.set("user::" + userId,
           User(
             user.get.id,
             user.get.email,
@@ -212,5 +213,8 @@ object UserId {
     }
   }
 
-  implicit def convertToString(userId: UserId): String = userId.id
+  implicit def convertToString(userId: UserId): String = {
+    println(s"user::$userId.id")
+    s"user::$userId.id"
+  }
 }
