@@ -59,13 +59,15 @@ object Timeline extends DataPartitionable {
   }
 
   def calc(userId: String, numbersOfDaysInLastWeek: List[Int], year: Int, week: Int) = {
-    val id = userId.drop(12) // change to UserIdType!
+    val id = userId.drop(12) // @ToDo change to UserIdType!
 
     for {
-      users <- User.find(id).map(_.get.followees).map(_.get)
+      myFollowees <- User.find(id).map(_.get.followees).map(_.get)
+      users = myFollowees :+ s"$id"
     } yield {
+
       var li: List[Post] = List()
-      val futures = users.map(uId => Post.getAll(uId.drop(6).toInt, currentYear, week))
+      val futures = users.map(uId => Post.getAll(uId.toInt, currentYear, week))
 
       for {
         list <- Future.sequence(futures)

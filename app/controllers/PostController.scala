@@ -39,9 +39,10 @@ object PostController extends Controller with DataPartitionable {
             Post.create(uuid, "user::" + userId.toString, json)
 
             for {
-              followees <- Follower.followers(userId.toString, None)
+              followees <- Follower.followersIds(userId.toString, None)
             } yield {
-              followees.map(CalculateTimelineActor ! _.toString())
+              val x = followees :+ s"user::$userId"
+              x.map(CalculateTimelineActor ! _.toString()) // @ToDo elorap
             }
             Ok(Json.obj("status" -> JsString("created: " + uuid.toString()))).withHeaders(LOCATION -> ("id: " + uuid))
           }
@@ -61,12 +62,9 @@ object PostController extends Controller with DataPartitionable {
   def find(
             @ApiParam(value = "ID of the pet to fetch") @PathParam("postId") id: String) = Action.async {
     Post.find(id).map {
-      t =>
-        t match {
-          case None => NotFound("Not found post " + id)
-          case _ =>
-            Ok(Json.toJson(t))
-        }
+      case None => NotFound("Not found post " + id)
+      case t =>
+        Ok(Json.toJson(t))
     }
   }
 

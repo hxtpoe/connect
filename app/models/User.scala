@@ -9,7 +9,6 @@ import play.api.libs.json.{Json, Format}
 import rx.Observable
 import rx.functions.{Action1, Func1}
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import scala.concurrent.{Promise, Future}
 
 case class RegisteredAccount(
@@ -29,16 +28,6 @@ case class BaseUser(
                      link: String
                    )
 
-trait NewBaseUser {
-  val id: Option[String]
-  val first_name: String
-  val gender: String
-  val last_name: String
-  val link: String
-}
-
-//case class newUser() extends NewBaseUser
-
 case class User(
                  id: Option[String],
                  email: String,
@@ -50,7 +39,6 @@ case class User(
                  provider: String,
                  followees: Option[List[String]]
                )
-
 
 object BaseUser {
   implicit val fmt: Format[BaseUser] = Json.format[BaseUser]
@@ -71,8 +59,24 @@ object User {
     bucket.get[BaseUser]("user::" + id)
   }
 
-  def newfind(id: String): Future[Option[BaseUser]] = {
+  def findBase(id: UserId): Future[Option[BaseUser]] = {
+    println(id)
+    bucket.get[BaseUser](id)
+  }
 
+  def getFollowees(user: User, skip:Option[Int] = Some(0)) = {
+    val followees = user.followees.getOrElse(List())
+    val followeesIds = followees.slice(skip.getOrElse(0), skip.getOrElse(0) + 40)
+    val map = followeesIds.map(id => id -> User.findBase(id)).toMap // id.drop(6) should disapear..
+
+    for {
+        profilesMap <- Future.traverse(map) { case (k, fv) => fv.map(k -> _) } map (_.toMap)
+    } yield {
+      profilesMap
+    }
+  }
+
+  def newfind(id: String): Future[Option[BaseUser]] = {
     bucket.get[BaseUser]("user::" + id)
   }
 
@@ -96,8 +100,8 @@ object User {
       user <- User.find(userId)
     } yield {
       val followees = user.get.followees.getOrElse(List())
-      if (!followees.contains("user::" + followeeId)) {
-        val newFolloweesList = followees :+ ("user::" + followeeId)
+      if (!followees.contains(followeeId)) {
+        val newFolloweesList = followees :+ followeeId
         bucket.set("user::" + userId,
           User(
             user.get.id,
@@ -119,10 +123,10 @@ object User {
       user <- User.find(userId)
     } yield {
       val followees = user.get.followees.getOrElse(List())
-      if (followees.contains(followeeId.toInt)) {
-        val newFolloweesList = followees.take(followees.indexOf(followeeId.toInt)) ++ followees.drop(followees.indexOf(followeeId.toInt) + 1)
+      if (followees.contains(followeeId)) {
+        val newFolloweesList = followees.take(followees.indexOf(followeeId)) ++ followees.drop(followees.indexOf(followeeId) + 1)
 
-        bucket.set(userId,
+        bucket.set("user::" + userId,
           User(
             user.get.id,
             user.get.email,
@@ -197,8 +201,20 @@ object User {
   }
 }
 
-class UserId(val id: Int)
+case class UserId(id: String)
 
 object UserId {
-  implicit def idToString(userId: UserId): String = s"user::$userId.id"
+  implicit def toInt(userId: UserId): Int = {
+    val regexp = "(user::).*".r
+
+    userId.id match {
+      case regexp(x) => x.drop(6).toInt
+      case intId: String => intId.toInt
+    }
+  }
+
+  implicit def convertToString(userId: UserId): String = {
+    println(s"user::$userId.id")
+    s"user::$userId.id"
+  }
 }
