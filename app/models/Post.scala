@@ -74,7 +74,16 @@ object Post {
         p <- getAll(userId, year, week)
       } yield {
         p match {
-          case Some(posts: List[Post]) if posts.nonEmpty => prom.success((posts.sortBy(_.createdAt).reverse, week))
+          case Some(posts: List[Post]) if posts.nonEmpty => {
+            val newpostst = posts.sortWith((first, second) => {
+              val df = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH)
+              val firstDate = df.parse(first.createdAt.get)
+              val secondDate = df.parse(second.createdAt.get)
+
+              firstDate.compareTo(secondDate) > 0
+            })
+            prom.success((newpostst, week))
+          }
           case None if week > 0 => recurse(userId, year)(week - 1)
           case None if week == 0 => prom.failure(new Exception("I went through all year and there is no timeline to show!"))
         }
