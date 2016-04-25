@@ -7,10 +7,9 @@ import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
 import play.api.libs.ws.WS
 import play.api.mvc._
 import utils.QueryStringParser
+
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
-import scala.util.{Try, Failure, Success}
-import scala.concurrent.duration._
+import scala.concurrent.Future
 
 object Authentication extends Controller {
   implicit val timeout = Timeout.intToTimeout(60 * 1000)
@@ -53,7 +52,9 @@ object Authentication extends Controller {
 
         val token = profile.map(FacebookProfile.createOrMerge(_))
 
-        token map (x => Ok(Json.obj("token" -> services.JWTService.generate(x.toString))))
+        token map (x => Ok(Json.obj("token" -> {
+          services.JWTService.generate(x.toString.drop(6)) // @ToDo get rid of this funny type conversion by using drop natural key prefix
+        })))
 
       case e: JsError =>
         Future(BadRequest(JsError.toFlatJson(e)))

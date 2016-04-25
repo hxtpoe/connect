@@ -24,9 +24,9 @@ object JWTService {
     // Prepare JWT with claims set
     val claimsSet = new JWTClaimsSet()
     claimsSet.setSubject(subject)
-    val signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claimsSet);
-    signedJWT.sign(signer);
-    signedJWT.serialize();
+    val signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claimsSet)
+    signedJWT.sign(signer)
+    signedJWT.serialize()
   }
 
   def props = Props(new JWTService)

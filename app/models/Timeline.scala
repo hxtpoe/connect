@@ -72,7 +72,7 @@ object Timeline extends DataPartitionable {
       for {
         list <- Future.sequence(futures)
       } yield {
-        list.map(_.foreach(element => {
+        list.foreach(_.foreach(element => {
           li = li ::: element
         }))
 
@@ -80,7 +80,7 @@ object Timeline extends DataPartitionable {
 
         numbersOfDaysInLastWeek.map(numberOfADay => {
           val postsForGivenDay = y.filter({ x =>
-            val dt = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH)
+            val dt = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH) // @ToDo extract to static pattern
             dt.parse(x.createdAt.get)
 
             new SimpleDateFormat("D", Locale.ENGLISH).format(dt.parse(x.createdAt.get)).toInt == numberOfADay // Tue, 09 Feb 2016 23:23:45 +0000
