@@ -1,7 +1,7 @@
 package models
 
 import java.text.SimpleDateFormat
-import java.util.{Date, Locale}
+import java.util.{Calendar, Date, Locale}
 
 import com.couchbase.client.protocol.views.{ComplexKey, Query, Stale}
 import datasources.{couchbase => cb}
@@ -34,7 +34,7 @@ object PostJoin {
   }
 }
 
-object Post {
+object Post extends DataPartitionable {
   implicit val bucket = cb.bucket
   implicit val fmt: Format[Post] = Json.format[Post]
 
@@ -99,7 +99,7 @@ object Post {
     val dateFormatGmt = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH) // RFC 2822
     dateFormatGmt.format(now)
 
-    val documentId = userId + "::posts::" + year + "::" + weekOfYear
+    val documentId = userId + "::posts::" + currentYear + "::" + currentWeekOfYear
 
     for (
       storedPost <- bucket.get[JsObject](documentId)
@@ -199,22 +199,10 @@ object Post {
 
     result
   }
-
-  def weekOfYear = dayOfYear / 7
-
-  def dayOfYear: Int = simpleDataFormat("D")
-
-  def year: Int = simpleDataFormat("YYYY")
-
-  def simpleDataFormat(code: String): Int = {
-    val now = new Date()
-    val day = new SimpleDateFormat(code, Locale.ENGLISH)
-    day.format(now).toInt
-  }
 }
 
 trait DataPartitionable {
-  def currentWeekOfYear = currentDayOfYear / 7
+  def currentWeekOfYear = Calendar.getInstance().get(Calendar.WEEK_OF_YEAR)
 
   def currentDayOfYear: Int = simpleDataFormat("D")
 

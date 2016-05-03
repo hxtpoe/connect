@@ -32,8 +32,9 @@ object Timeline extends DataPartitionable {
       for {
         p <- get(userId, year)(day)
       } yield {
-        p match {
+        p match { // @ToDo That Some(Nil) is funny..
           case Some(posts: List[Post]) if posts.nonEmpty => prom.success((posts, day))
+          case Some(posts: List[Post]) if posts == Nil => recurse(userId, year)(day - 1)
           case None if day > 0 => recurse(userId, year)(day - 1)
           case None if day == 0 => prom.failure(new Exception("I went through all year and there is no timeline to show!"))
         }
@@ -50,12 +51,14 @@ object Timeline extends DataPartitionable {
       case List() => List.range(currentDayOfYear - 6, currentDayOfYear + 1)
       case x => x
     }
+
     calc(userId, numbersOfDaysInLastWeek, currentYear, currentWeekOfYear)
   }
 
   def specifiedTimeline(userId: String, year: Int, week: Int) = {
-    val numbersOfDaysInLastWeek = List.range(week * 7 - 6, week * 7 + 1)
-    calc(userId, numbersOfDaysInLastWeek, year, week)
+    val numbersOfDaysInTheWeek = List.range(week * 7 - 6, week * 7 + 1)
+
+    calc(userId, numbersOfDaysInTheWeek, year, week)
   }
 
   def calc(userId: String, numbersOfDaysInLastWeek: List[Int], year: Int, week: Int) = {
@@ -87,10 +90,16 @@ object Timeline extends DataPartitionable {
           })
 
           postsForGivenDay match {
-            case Nil => {}
-            case _ => bucket.set(s"user::$id::timelines::$year::$numberOfADay", Json.obj("posts" ->
-              postsForGivenDay
-            ))
+            case Nil => {
+              bucket.set(s"user::$id::timelines::$year::$numberOfADay", Json.obj("posts" ->
+                postsForGivenDay
+              ))
+            }
+            case _ => {
+              bucket.set(s"user::$id::timelines::$year::$numberOfADay", Json.obj("posts" ->
+                postsForGivenDay
+              ))
+            }
           }
 
           postsForGivenDay

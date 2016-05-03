@@ -1,15 +1,16 @@
 package models
 
 import com.couchbase.client.java.view._
-import com.couchbase.client.protocol.views.{Stale, ComplexKey, Query}
+import com.couchbase.client.protocol.views.{ComplexKey, Query, Stale}
 import datasources.{couchbase => cb}
-import org.reactivecouchbase.client.{RawRow, OpResult}
+import org.reactivecouchbase.client.{OpResult, RawRow}
 import play.Play
-import play.api.libs.json.{Json, Format}
+import play.api.libs.json.{Format, Json}
 import rx.Observable
 import rx.functions.{Action1, Func1}
+
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Promise, Future}
+import scala.concurrent.{Future, Promise}
 
 case class RegisteredAccount(
                               email: String,
@@ -60,17 +61,16 @@ object User {
   }
 
   def findBase(id: UserId): Future[Option[BaseUser]] = {
-    println(id)
     bucket.get[BaseUser](id)
   }
 
-  def getFollowees(user: User, skip:Option[Int] = Some(0)) = {
+  def getFollowees(user: User, skip: Option[Int] = Some(0)) = {
     val followees = user.followees.getOrElse(List())
     val followeesIds = followees.slice(skip.getOrElse(0), skip.getOrElse(0) + 40)
     val map = followeesIds.map(id => id -> User.findBase(id)).toMap // id.drop(6) should disapear..
 
     for {
-        profilesMap <- Future.traverse(map) { case (k, fv) => fv.map(k -> _) } map (_.toMap)
+      profilesMap <- Future.traverse(map) { case (k, fv) => fv.map(k -> _) } map (_.toMap)
     } yield {
       profilesMap
     }
@@ -95,7 +95,8 @@ object User {
     }
   }
 
-  def follow(userId: String, followeeId: String) = {
+  def follow(userId: String, followeeId: String): Future[Boolean] = {
+    val p = Promise[Boolean]
     for {
       user <- User.find(userId)
     } yield {
@@ -114,11 +115,14 @@ object User {
             user.get.provider,
             Some(newFolloweesList)
           ))
+        true
+      } else {
+        false
       }
     }
   }
 
-  def unfollow(userId: String, followeeId: String) = {
+  def unfollow(userId: String, followeeId: String): Future[Boolean] = {
     for {
       user <- User.find(userId)
     } yield {
@@ -138,6 +142,9 @@ object User {
             user.get.provider,
             Some(newFolloweesList)
           ))
+        true
+      } else {
+        false
       }
     }
   }
@@ -214,7 +221,6 @@ object UserId {
   }
 
   implicit def convertToString(userId: UserId): String = {
-    println(s"user::$userId.id")
     s"user::$userId.id"
   }
 }
