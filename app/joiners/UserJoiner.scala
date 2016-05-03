@@ -7,9 +7,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object UserJoiner {
   def apply(inputList: List[Post]) = {
-
-//    println(inputList)
-
     val usersIds = inputList.map(post => post.userId.get)
     val uniqueUserProfileList = usersIds.distinct.map(id => id -> models.User.findBase(id.replace("user::", ""))).toMap
 
