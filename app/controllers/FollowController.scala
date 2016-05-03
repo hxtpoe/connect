@@ -2,15 +2,25 @@ package controllers
 
 import javax.ws.rs.{PathParam, QueryParam}
 
+import actors.timeline.CalculateCurrentTimelineActor
+import akka.actor.Props
 import com.wordnik.swagger.annotations._
 import models.{Follower, User}
+import play.api.Play.current
+import play.api.libs.concurrent.Akka
 import play.api.libs.json._
 import play.api.mvc._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
+
 @Api(value = "/followees")
 object FollowController extends Controller {
+
+  def system = play.api.libs.concurrent.Akka.system
+
+  val CalculateCurrentTimelineActor = Akka.system.actorOf(Props[CalculateCurrentTimelineActor], name = "RefreshTimelineActor")
+
   def getFollowees(
                     @ApiParam(value = "userId") @PathParam("userId") userId: String,
                     @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) =
@@ -84,9 +94,13 @@ object FollowController extends Controller {
               @ApiParam(value = "followerId") @PathParam("followerId") followerId: Int,
               @ApiParam(value = "followeeId") @PathParam("followeeId") followeeId: Int) =
     Action {
-      request =>
-        User.follow(followerId.toString, followeeId.toString)
+      request => {
+        User.follow(followerId.toString, followeeId.toString)  map {
+          case true => CalculateCurrentTimelineActor ! s"user::$followerId"
+        }
+
         Ok("added")
+      }
     }
 
   @ApiOperation(
@@ -102,8 +116,12 @@ object FollowController extends Controller {
                 @ApiParam(value = "followerId") @PathParam("followerId") followerId: Int,
                 @ApiParam(value = "followeeId") @PathParam("followeeId") followeeId: Int) =
     Action {
-      request =>
-        User.unfollow(followerId.toString, followeeId.toString)
+      request => {
+        User.unfollow(followerId.toString, followeeId.toString) map {
+          case true => CalculateCurrentTimelineActor ! s"user::$followerId"
+        }
+
         Ok("unfollowed")
+      }
     }
 }

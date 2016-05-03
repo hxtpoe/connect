@@ -53,7 +53,7 @@ object Authentication extends Controller {
         val token = profile.map(FacebookProfile.createOrMerge(_))
 
         token map (x => Ok(Json.obj("token" -> {
-          services.JWTService.generate(x.toString.drop(6)) // @ToDo get rid of this funny type conversion by using drop natural key prefix
+          services.JWTService.generate(x.toString) // @ToDo get rid of this funny type conversion by using drop natural key prefix
         })))
 
       case e: JsError =>
