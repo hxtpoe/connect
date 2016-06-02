@@ -12,7 +12,7 @@ import play.cache.Cache
 
 import scala.collection.immutable.List
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Promise, Future}
+import scala.concurrent.{Future, Promise}
 
 case class Post(
                  id: Option[String],
@@ -37,6 +37,7 @@ object PostJoin {
 object Post extends DataPartitionable {
   implicit val bucket = cb.bucket
   implicit val fmt: Format[Post] = Json.format[Post]
+  import models.UserIdConvertions.convertToString
 
   val hotView = (if (Play.application().isDev) "dev_") + "hotPosts"
   val coldView = (if (Play.application().isDev) "dev_") + "posts"
@@ -48,8 +49,8 @@ object Post extends DataPartitionable {
     bucket.get(id)
   }
 
-  def getAll(userId: Int, year: Int, week: Int): Future[Option[List[Post]]] = {
-    val key = s"user::$userId::posts::$year::$week"
+  def getAll(userId: UserId, year: Int, week: Int): Future[Option[List[Post]]] = {
+    val key = userId + s"::posts::$year::$week"
     for (
       posts <- bucket.get[Option[JsObject]](key)
     ) yield {
@@ -66,10 +67,10 @@ object Post extends DataPartitionable {
 
   type notEmptyPostResultType = (List[Post], Int)
 
-  def firstNotEmpty(userId: Int, year: Int)(week: Int): Future[notEmptyPostResultType] = {
+  def firstNotEmpty(userId: UserId, year: Int)(week: Int): Future[notEmptyPostResultType] = {
     val prom = Promise[notEmptyPostResultType]
 
-    def recurse(userId: Int, year: Int)(week: Int): Future[Object] = {
+    def recurse(userId: UserId, year: Int)(week: Int): Future[Object] = {
       for {
         p <- getAll(userId, year, week)
       } yield {
@@ -94,7 +95,7 @@ object Post extends DataPartitionable {
     prom.future
   }
 
-  def create(id: String, userId: String, post: Post) = {
+  def create(id: String, userId: UserId, post: Post) = {
     val now = new Date()
     val dateFormatGmt = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH) // RFC 2822
     dateFormatGmt.format(now)
@@ -112,7 +113,10 @@ object Post extends DataPartitionable {
     }
   }
 
-  def add(post: Post, uuid: String, userId: String, docId: String, stringDate: String): Future[OpResult] = {
+  def add(post: Post, uuid: String, userId: UserId, docId: String, stringDate: String): Future[OpResult] = {
+
+    import models.UserIdConvertions.convertToString
+
     val newPost =
       Json.obj(// why is this Json, not an object
         "posts" ->
@@ -120,7 +124,7 @@ object Post extends DataPartitionable {
             Json.obj(
               "uuid" -> uuid,
               "message" -> post.message,
-              "userId" -> userId
+              "userId" -> JsString(userId)
             ) ++ Json.obj(
               "createdAt" -> stringDate.toString,
               "docType" -> "post")))
@@ -128,12 +132,13 @@ object Post extends DataPartitionable {
     bucket.add[JsValue](docId, newPost)
   }
 
-  def append(storedPost: JsObject, post: Post, uuid: String, userId: String, docId: String, stringDate: String): Future[OpResult] = {
+  def append(storedPost: JsObject, post: Post, uuid: String, userId: UserId, docId: String, stringDate: String): Future[OpResult] = {
+    import models.UserIdConvertions.convertToString
     val newPost =
       Json.obj(
         "uuid" -> uuid,
         "message" -> post.message,
-        "userId" -> userId
+        "userId" -> JsString(userId)
       ) ++ Json.obj(
         "createdAt" -> stringDate.toString,
         "docType" -> "post")

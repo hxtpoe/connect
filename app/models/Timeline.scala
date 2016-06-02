@@ -11,10 +11,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
 
 object Timeline extends DataPartitionable {
+
+  import models.UserIdConvertions.convertToString
+
   type notEmptyTimeLineResultType = (List[Post], Int)
   implicit val bucket = couchbase.bucket
 
-  def get(userId: Int, year: Int)(day: Int): Future[Option[List[Post]]] = {
+  def get(userId: UserId, year: Int)(day: Int): Future[Option[List[Post]]] = {
     for {
       posts <- bucket.get[Option[JsObject]](s"user::$userId::timelines::$year::$day")
     } yield {
@@ -25,14 +28,15 @@ object Timeline extends DataPartitionable {
     }
   }
 
-  def firstNotEmpty(userId: Int, year: Int)(day: Int): Future[notEmptyTimeLineResultType] = {
+  def firstNotEmpty(userId: UserId, year: Int)(day: Int): Future[notEmptyTimeLineResultType] = {
     val prom = Promise[notEmptyTimeLineResultType]
 
-    def recurse(userId: Int, year: Int)(day: Int): Future[Object] = {
+    def recurse(userId: UserId, year: Int)(day: Int): Future[Object] = {
       for {
         p <- get(userId, year)(day)
       } yield {
-        p match { // @ToDo That Some(Nil) is funny..
+        p match {
+          // @ToDo That Some(Nil) is funny..
           case Some(posts: List[Post]) if posts.nonEmpty => prom.success((posts, day))
           case Some(posts: List[Post]) if posts == Nil => recurse(userId, year)(day - 1)
           case None if day > 0 => recurse(userId, year)(day - 1)
@@ -46,7 +50,7 @@ object Timeline extends DataPartitionable {
   }
 
 
-  def currentWeekTimeline(userId: String) = {
+  def currentWeekTimeline(userId: UserId) = {
     val numbersOfDaysInLastWeek = List.range(1 + 7 * (currentDayOfYear / 7), currentDayOfYear + 1) match {
       case List() => List.range(currentDayOfYear - 6, currentDayOfYear + 1)
       case x => x
@@ -55,22 +59,20 @@ object Timeline extends DataPartitionable {
     calc(userId, numbersOfDaysInLastWeek, currentYear, currentWeekOfYear)
   }
 
-  def specifiedTimeline(userId: String, year: Int, week: Int) = {
+  def specifiedTimeline(userId: UserId, year: Int, week: Int) = {
     val numbersOfDaysInTheWeek = List.range(week * 7 - 6, week * 7 + 1)
 
     calc(userId, numbersOfDaysInTheWeek, year, week)
   }
 
-  def calc(userId: String, numbersOfDaysInLastWeek: List[Int], year: Int, week: Int) = {
-    val id = userId.drop(12) // @ToDo change to UserIdType!
-
+  def calc(userId: UserId, numbersOfDaysInLastWeek: List[Int], year: Int, week: Int) = {
     for {
-      myFollowees <- User.find(id).map(_.get.followees).map(_.get)
-      users = myFollowees :+ s"$id"
+      myFollowees <- User.find(userId).map(_.get.followees).map(_.get)
+      users = myFollowees :+ userId
     } yield {
 
       var li: List[Post] = List()
-      val futures = users.map(uId => Post.getAll(uId.toInt, currentYear, week))
+      val futures = users.map(uId => Post.getAll(uId, currentYear, week))
 
       for {
         list <- Future.sequence(futures)
@@ -91,12 +93,12 @@ object Timeline extends DataPartitionable {
 
           postsForGivenDay match {
             case Nil => {
-              bucket.set(s"user::$id::timelines::$year::$numberOfADay", Json.obj("posts" ->
+              bucket.set(userId + s"::timelines::$year::$numberOfADay", Json.obj("posts" ->
                 postsForGivenDay
               ))
             }
             case _ => {
-              bucket.set(s"user::$id::timelines::$year::$numberOfADay", Json.obj("posts" ->
+              bucket.set(userId + s"::timelines::$year::$numberOfADay", Json.obj("posts" ->
                 postsForGivenDay
               ))
             }

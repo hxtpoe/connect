@@ -28,8 +28,8 @@ GET            /api/user/:userId/timeline                        controllers.Tim
 GET            /api/user/:userId/calcLatestTimeline              controllers.TimelineController.calcLatestTimeline(userId: Int)
 GET            /api/user/:userId/calcTimeline/:year/:week        controllers.TimelineController.specifiedTimeline(userId: Int, year: Int, week: Int)
 
-GET            /api/user/:userId/followees                       controllers.FollowController.getFollowees(userId: String, skip: Option[Int])
-GET            /api/user/:userId/followers                       controllers.FollowController.getFollowers(userId: String, skip: Option[Int])
+GET            /api/user/:userId/followees                       controllers.FollowController.getFollowees(userId: Int, skip: Option[Int])
+GET            /api/user/:userId/followers                       controllers.FollowController.getFollowers(userId: Int, skip: Option[Int])
 PUT            /api/user/:followerId/follow/:followeeId          controllers.FollowController.follow(followerId: Int, followeeId: Int)
 DELETE         /api/user/:followerId/follow/:followeeId          controllers.FollowController.unfollow(followerId: Int, followeeId: Int)
 

@@ -5,12 +5,17 @@ import com.couchbase.client.protocol.views.{ComplexKey, Query, Stale}
 import datasources.{couchbase => cb}
 import org.reactivecouchbase.client.{OpResult, RawRow}
 import play.Play
-import play.api.libs.json.{Format, Json}
+import play.api.libs.json._
 import rx.Observable
 import rx.functions.{Action1, Func1}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
+
+// Custom validation helpers
+
+// Combinator syntax
+
 
 case class RegisteredAccount(
                               email: String,
@@ -38,22 +43,44 @@ case class User(
                  link: String,
                  locale: String,
                  provider: String,
-                 followees: Option[List[String]]
+                 followees: Option[List[UserId]]
                )
 
 object BaseUser {
   implicit val fmt: Format[BaseUser] = Json.format[BaseUser]
 }
 
+object JsonFormatters {
+
+}
+
 object User {
+
+  import UserIdConvertions._
+
   implicit val bucket = cb.bucket
+
+  implicit val writer = new Writes[UserId] {
+    def writes(t: UserId): JsValue = {
+      JsNumber(t.id)
+    }
+  }
+
+  implicit val reader = new Reads[UserId] {
+    def reads(json: JsValue): JsResult[UserId] = {
+      for {
+        id <- (json).validate[Int]
+      } yield UserId(id)
+    }
+  }
+
   implicit val fmt: Format[User] = Json.format[User]
 
   val viewName = (if (Play.application().isDev) "dev_") + "users"
 
 
-  def find(id: String): Future[Option[User]] = {
-    bucket.get("user::" + id)
+  def find(id: UserId): Future[Option[User]] = {
+    bucket.get[User](id)
   }
 
   def findBase(id: String): Future[Option[BaseUser]] = {
@@ -67,7 +94,7 @@ object User {
   def getFollowees(user: User, skip: Option[Int] = Some(0)) = {
     val followees = user.followees.getOrElse(List())
     val followeesIds = followees.slice(skip.getOrElse(0), skip.getOrElse(0) + 40)
-    val map = followeesIds.map(id => id -> User.findBase(id)).toMap // id.drop(6) should disapear..
+    val map = followeesIds.map(id => id -> User.findBase(UserId(id))).toMap // id.drop(6) should disapear..
 
     for {
       profilesMap <- Future.traverse(map) { case (k, fv) => fv.map(k -> _) } map (_.toMap)
@@ -95,15 +122,16 @@ object User {
     }
   }
 
-  def follow(userId: String, followeeId: String): Future[Boolean] = {
+  def follow(userId: UserId, followeeId: UserId): Future[Boolean] = {
     val p = Promise[Boolean]
     for {
       user <- User.find(userId)
     } yield {
       val followees = user.get.followees.getOrElse(List())
       if (!followees.contains(followeeId)) {
-        val newFolloweesList = followees :+ followeeId
-        bucket.set("user::" + userId,
+        val newFolloweesList = (followees :+ followeeId)
+
+        bucket.set(userId,
           User(
             user.get.id,
             user.get.email,
@@ -122,7 +150,7 @@ object User {
     }
   }
 
-  def unfollow(userId: String, followeeId: String): Future[Boolean] = {
+  def unfollow(userId: UserId, followeeId: UserId): Future[Boolean] = {
     for {
       user <- User.find(userId)
     } yield {
@@ -130,7 +158,7 @@ object User {
       if (followees.contains(followeeId)) {
         val newFolloweesList = followees.take(followees.indexOf(followeeId)) ++ followees.drop(followees.indexOf(followeeId) + 1)
 
-        bucket.set("user::" + userId,
+        bucket.set(userId,
           User(
             user.get.id,
             user.get.email,
@@ -199,28 +227,29 @@ object User {
   }
 
   def init() = {
-    bucket.get("users_counter") onSuccess {
+    bucket.get[Int]("users_counter") onSuccess {
       case None => {
         bucket.set[Int]("users_counter", 102)
-        //        generators.UserGenerator.runUsers()
+        generators.UserGenerator.runUsers()
       }
     }
   }
 }
 
-case class UserId(id: String)
+case class UserId(id: Int) {
 
-object UserId {
-  implicit def toInt(userId: UserId): Int = {
-    val regexp = "(user::).*".r
 
-    userId.id match {
-      case regexp(x) => x.drop(6).toInt
-      case intId: String => intId.toInt
-    }
-  }
+  override def toString = id.toString
+}
 
+object UserIdConvertions {
   implicit def convertToString(userId: UserId): String = {
-    s"user::$userId.id"
+    s"user::${userId.id}"
   }
+
+  implicit def stringToUserId(userId: String): UserId = {
+    UserId(userId.toInt)
+  }
+
+  implicit def convertToInt(userId: UserId): Int = userId.id
 }

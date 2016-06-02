@@ -3,7 +3,7 @@ package controllers
 import javax.ws.rs.PathParam
 
 import com.wordnik.swagger.annotations._
-import models.User
+import models.{UserId, User}
 import play.api.libs.json._
 import play.api.mvc._
 
@@ -46,7 +46,7 @@ object UserController extends Controller {
             @ApiParam(value = "userId") @PathParam("userId") userId: Int) =
     Action.async {
       for {
-        user <- User.find(userId.toString)
+        user <- User.find(UserId(userId))
       } yield {
         user match {
           case Some(u) => Ok(Json.toJson(user))

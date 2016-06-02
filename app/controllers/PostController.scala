@@ -5,7 +5,7 @@ import javax.ws.rs.PathParam
 import actors.timeline.CalculateTimelineActor
 import akka.actor.Props
 import com.wordnik.swagger.annotations._
-import models.{DataPartitionable, Follower, Post}
+import models.{UserId, DataPartitionable, Follower, Post}
 import play.api.Play.current
 import play.api.libs.concurrent.Akka
 import play.api.libs.json.{JsError, _}
@@ -36,13 +36,13 @@ object PostController extends Controller with DataPartitionable {
           },
           json => {
             val uuid = java.util.UUID.randomUUID().toString()
-            Post.create(uuid, "user::" + userId.toString, json)
+            Post.create(uuid, UserId(userId), json)
 
             for {
-              followees <- Follower.followersIds(userId.toString, None)
+              followees <- Follower.followersIds(UserId(userId), None)
             } yield {
-              val x = followees :+ s"user::$userId"
-              x.map(CalculateTimelineActor ! _.toString()) // @ToDo elorap
+              val userIdsList = (followees :+ s"$userId")
+              userIdsList.map(CalculateTimelineActor ! _) //
             }
             Ok(Json.obj("status" -> JsString("created: " + uuid.toString()))).withHeaders(LOCATION -> ("id: " + uuid))
           }
@@ -69,14 +69,14 @@ object PostController extends Controller with DataPartitionable {
   }
 
   def posts(userId: Int, year: Int, week: Int) = Action.async {
-    notEmptyPosts(userId, year, week)
+    notEmptyPosts(UserId(userId), year, week)
   }
 
   def latestPosts(userId: Int) = Action.async {
-    notEmptyPosts(userId, currentYear, currentWeekOfYear)
+    notEmptyPosts(UserId(userId), currentYear, currentWeekOfYear)
   }
 
-  private def notEmptyPosts(userId: Int, year: Int, week: Int): Future[Result] = {
+  private def notEmptyPosts(userId: UserId, year: Int, week: Int): Future[Result] = {
     val future = for {
       (posts, weekOfPosts) <- Post.firstNotEmpty(userId, currentYear)(week)
       postsWithBaseUserProfile <- joiners.UserJoiner(posts)
@@ -84,7 +84,7 @@ object PostController extends Controller with DataPartitionable {
 
       Ok(Json.obj(
         "posts" -> postsWithBaseUserProfile,
-        "nextPage" -> routes.PostController.posts(userId, previousPageYearNumber(currentYear, weekOfPosts), previousPageWeekNumber(currentYear, weekOfPosts - 1)).toString()
+        "nextPage" -> routes.PostController.posts(userId.id, previousPageYearNumber(currentYear, weekOfPosts), previousPageWeekNumber(currentYear, weekOfPosts - 1)).toString()
       ))
     }
     future.recover {

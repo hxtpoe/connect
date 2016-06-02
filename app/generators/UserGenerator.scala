@@ -1,7 +1,7 @@
 package generators
 
 import datasources.couchbase
-import models.User
+import models.{UserId, User}
 import play.api.Logger
 import play.api.libs.json._
 
@@ -32,7 +32,7 @@ object UserGenerator {
         "http://google.pl/abcdefghijl",
         "en",
         "fb",
-        Some(List.range(1, 100).map(n => s"$n"))
+        Some(List.range(1, 100).map(UserId(_)))
       ))
     }
   }

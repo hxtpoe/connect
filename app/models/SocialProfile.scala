@@ -29,14 +29,13 @@ object FacebookProfile extends Counters {
     Await.result(User.findUserIdByFacebookId(profile.id), 2 second) match {
       case Some(id) => id
       case None => {
-        val newIdenfifier = "user::" + increment()
+        val newIdenfifier = increment()
         bucket.set[JsValue](
-          newIdenfifier.toString, Json.toJson(profile).as[JsObject] ++
+          "user::" + newIdenfifier.toString, Json.toJson(profile).as[JsObject] ++
             Json.obj(
               "provider" -> "fb",
               "type" -> "user",
-              "created_at" -> getTimestamp(),
-              "followees" -> JsArray(Seq(JsString(newIdenfifier)))
+              "created_at" -> getTimestamp()
             ))
         newIdenfifier.toString
       }
