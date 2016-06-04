@@ -41,9 +41,10 @@ object PostController extends Controller with DataPartitionable {
             for {
               followees <- Follower.followersIds(UserId(userId), None)
             } yield {
-              val userIdsList = (followees :+ s"$userId")
+              val userIdsList: List[UserId] = followees :+ UserId(userId)
               userIdsList.map(CalculateTimelineActor ! _) //
             }
+
             Ok(Json.obj("status" -> JsString("created: " + uuid.toString()))).withHeaders(LOCATION -> ("id: " + uuid))
           }
         )

@@ -158,6 +158,7 @@ object User {
       if (followees.contains(followeeId)) {
         val newFolloweesList = followees.take(followees.indexOf(followeeId)) ++ followees.drop(followees.indexOf(followeeId) + 1)
 
+
         bucket.set(userId,
           User(
             user.get.id,
@@ -237,8 +238,6 @@ object User {
 }
 
 case class UserId(id: Int) {
-
-
   override def toString = id.toString
 }
 

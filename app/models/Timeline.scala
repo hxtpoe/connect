@@ -12,8 +12,6 @@ import scala.concurrent.{Future, Promise}
 
 object Timeline extends DataPartitionable {
 
-  import models.UserIdConvertions.convertToString
-
   type notEmptyTimeLineResultType = (List[Post], Int)
   implicit val bucket = couchbase.bucket
 
@@ -60,12 +58,14 @@ object Timeline extends DataPartitionable {
   }
 
   def specifiedTimeline(userId: UserId, year: Int, week: Int) = {
-    val numbersOfDaysInTheWeek = List.range(week * 7 - 6, week * 7 + 1)
+    val numbersOfDaysInTheWeek = List.range((week + 1) * 7 - 6, (week + 1) * 7 + 1).filter(_ <= currentDayOfYear)
 
     calc(userId, numbersOfDaysInTheWeek, year, week)
   }
 
   def calc(userId: UserId, numbersOfDaysInLastWeek: List[Int], year: Int, week: Int) = {
+    import models.UserIdConvertions.convertToString
+
     for {
       myFollowees <- User.find(userId).map(_.get.followees).map(_.get)
       users = myFollowees :+ userId
@@ -93,6 +93,7 @@ object Timeline extends DataPartitionable {
 
           postsForGivenDay match {
             case Nil => {
+
               bucket.set(userId + s"::timelines::$year::$numberOfADay", Json.obj("posts" ->
                 postsForGivenDay
               ))

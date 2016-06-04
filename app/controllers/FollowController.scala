@@ -31,7 +31,7 @@ object FollowController extends Controller {
       } yield {
 
         Ok(Json.obj(
-          "followees" -> Json.toJson(f.map{ case(id, user) => (id.toString, user)}),
+          "followees" -> Json.toJson(f.map { case (id, user) => (id.toString, user) }),
           "count" -> user.get.followees.getOrElse(List()).size
         ))
       }
@@ -111,6 +111,7 @@ object FollowController extends Controller {
               @ApiParam(value = "followeeId") @PathParam("followeeId") followeeId: Int) =
     Action {
       request => {
+        CalculateCurrentTimelineActor ! UserId(followerId)
         User.follow(UserId(followerId), UserId(followeeId)) map {
           case true => CalculateCurrentTimelineActor ! UserId(followerId)
         }
@@ -133,8 +134,11 @@ object FollowController extends Controller {
                 @ApiParam(value = "followeeId") @PathParam("followeeId") followeeId: Int) =
     Action {
       request => {
+
         User.unfollow(UserId(followerId), UserId(followeeId)) map {
-          case true => CalculateCurrentTimelineActor ! UserId(followerId)
+          case true => {
+            CalculateCurrentTimelineActor ! UserId(followerId)
+          }
         }
 
         Ok("unfollowed")

@@ -6,7 +6,7 @@ import models.{UserId, DataPartitionable}
 class CalculateCurrentTimelineActor extends Actor with DataPartitionable {
   def receive = {
     case userId: UserId => {
-      List.range(1, currentWeekOfYear + 1).reverse.map(
+      List.range(currentWeekOfYear - 5, currentWeekOfYear + 1).reverse.map(
         models.Timeline.specifiedTimeline(userId, 2016, _)
       )
     }

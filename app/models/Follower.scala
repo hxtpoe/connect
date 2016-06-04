@@ -44,7 +44,7 @@ object Follower {
           .from(view, "all")
           .limit(3000)
           .stale(NewStale.FALSE)
-          .key(s"$userId")
+          .key(userId.id.toString)
           .inclusiveEnd(true)
       )
 
@@ -68,7 +68,7 @@ object Follower {
       },
       new Action1[Throwable] {
         override def call(t1: Throwable): Unit = {
-          followeePromise.failure(t1)
+          followeePromise.success(List())
         }
       }
     )

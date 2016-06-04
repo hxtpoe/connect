@@ -25,9 +25,9 @@ object FacebookProfile extends Counters {
     Await.result(incrAndGet("users_counter", 1), 1 second)
   }
 
-  def createOrMerge(profile: FacebookProfile): String = {
+  def createOrMerge(profile: FacebookProfile): UserId = {
     Await.result(User.findUserIdByFacebookId(profile.id), 2 second) match {
-      case Some(id) => id
+      case Some(id) => UserId(id.drop(6).toInt)
       case None => {
         val newIdenfifier = increment()
         bucket.set[JsValue](
@@ -37,7 +37,7 @@ object FacebookProfile extends Counters {
               "type" -> "user",
               "created_at" -> getTimestamp()
             ))
-        newIdenfifier.toString
+        UserId(newIdenfifier)
       }
     }
   }
