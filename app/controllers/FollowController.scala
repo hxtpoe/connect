@@ -76,19 +76,6 @@ object FollowController extends Controller {
         followers <- Follower.followersIds(UserId(userId), skip)
       } yield {
 
-        implicit val writer = new Writes[UserId] {
-          def writes(t: UserId): JsValue = {
-            JsNumber(t.id)
-          }
-        }
-
-        implicit val reader = new Reads[UserId] {
-          def reads(json: JsValue): JsResult[UserId] = {
-            for {
-              id <- (json).validate[Int]
-            } yield UserId(id)
-          }
-        }
 
         Ok(Json.obj(
           "rows" -> Json.toJson(followers)

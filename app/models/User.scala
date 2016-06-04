@@ -12,11 +12,6 @@ import rx.functions.{Action1, Func1}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
 
-// Custom validation helpers
-
-// Combinator syntax
-
-
 case class RegisteredAccount(
                               email: String,
                               password: String
@@ -94,17 +89,13 @@ object User {
   def getFollowees(user: User, skip: Option[Int] = Some(0)) = {
     val followees = user.followees.getOrElse(List())
     val followeesIds = followees.slice(skip.getOrElse(0), skip.getOrElse(0) + 40)
-    val map = followeesIds.map(id => id -> User.findBase(UserId(id))).toMap // id.drop(6) should disapear..
+    val map = followeesIds.map(id => id -> User.findBase(UserId(id))).toMap
 
     for {
       profilesMap <- Future.traverse(map) { case (k, fv) => fv.map(k -> _) } map (_.toMap)
     } yield {
       profilesMap
     }
-  }
-
-  def newfind(id: String): Future[Option[BaseUser]] = {
-    bucket.get[BaseUser]("user::" + id)
   }
 
   def findUserIdByFacebookId(fbId: String): Future[Option[String]] = {
@@ -239,6 +230,22 @@ object User {
 
 case class UserId(id: Int) {
   override def toString = id.toString
+}
+
+object UserId {
+  implicit val writer = new Writes[UserId] {
+    def writes(t: UserId): JsValue = {
+      JsNumber(t.id)
+    }
+  }
+
+  implicit val reader = new Reads[UserId] {
+    def reads(json: JsValue): JsResult[UserId] = {
+      for {
+        id <- (json).validate[Int]
+      } yield UserId(id)
+    }
+  }
 }
 
 object UserIdConvertions {

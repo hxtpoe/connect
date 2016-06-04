@@ -24,7 +24,7 @@ object UserController extends Controller {
             @ApiParam(value = "userId") @PathParam("userId") userId: Int) =
     Action.async {
       for {
-        user <- User.newfind(userId.toString)
+        user <- User.findBase(UserId(userId))
       } yield {
         user match {
           case Some(u) => Ok(Json.toJson(user))
