@@ -68,7 +68,7 @@ object Timeline extends DataPartitionable {
 
     for {
       myFollowees <- User.find(userId).map(_.get.followees).map(_.get)
-      users = myFollowees :+ userId
+      users = (myFollowees :+ userId).distinct
     } yield {
 
       var li: List[Post] = List()
@@ -91,15 +91,14 @@ object Timeline extends DataPartitionable {
             new SimpleDateFormat("D", Locale.ENGLISH).format(dt.parse(x.createdAt.get)).toInt == numberOfADay // Tue, 09 Feb 2016 23:23:45 +0000
           })
 
+          val key = userId + s"::timelines::$year::$numberOfADay"
+
           postsForGivenDay match {
             case Nil => {
-
-              bucket.set(userId + s"::timelines::$year::$numberOfADay", Json.obj("posts" ->
-                postsForGivenDay
-              ))
+              bucket.delete(key)
             }
             case _ => {
-              bucket.set(userId + s"::timelines::$year::$numberOfADay", Json.obj("posts" ->
+              bucket.set(key, Json.obj("posts" ->
                 postsForGivenDay
               ))
             }

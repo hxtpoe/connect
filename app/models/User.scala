@@ -3,6 +3,7 @@ package models
 import com.couchbase.client.java.view._
 import com.couchbase.client.protocol.views.{ComplexKey, Query, Stale}
 import datasources.{couchbase => cb}
+import generators.UserGenerator
 import org.reactivecouchbase.client.{OpResult, RawRow}
 import play.Play
 import play.api.libs.json._
@@ -221,7 +222,7 @@ object User {
   def init() = {
     bucket.get[Int]("users_counter") onSuccess {
       case None => {
-        bucket.set[Int]("users_counter", 102)
+        bucket.set[Int]("users_counter", UserGenerator.numberOfUsers + 1)
         generators.UserGenerator.runUsers()
       }
     }

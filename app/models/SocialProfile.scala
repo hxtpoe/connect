@@ -35,7 +35,8 @@ object FacebookProfile extends Counters {
             Json.obj(
               "provider" -> "fb",
               "type" -> "user",
-              "created_at" -> getTimestamp()
+              "created_at" -> getTimestamp(),
+              "followees" -> List()
             ))
         UserId(newIdenfifier)
       }

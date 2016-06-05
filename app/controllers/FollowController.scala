@@ -12,6 +12,7 @@ import play.api.libs.json._
 import play.api.mvc._
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 
 @Api(value = "/followees")
@@ -25,7 +26,7 @@ object FollowController extends Controller {
                     @ApiParam(value = "userId") @PathParam("userId") userId: Int,
                     @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) =
     Action.async {
-      for {
+      val future = for {
         user <- User.find(UserId(userId))
         f <- User.getFollowees(user.get, skip)
       } yield {
@@ -34,6 +35,10 @@ object FollowController extends Controller {
           "followees" -> Json.toJson(f.map { case (id, user) => (id.toString, user) }),
           "count" -> user.get.followees.getOrElse(List()).size
         ))
+      }
+
+      future.recoverWith {
+        case _ => Future(NotFound("xx"))
       }
     }
 
