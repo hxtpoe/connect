@@ -1,7 +1,7 @@
 package generators
 
 import datasources.couchbase
-import models.User
+import models.{UserId, User}
 import play.api.Logger
 import play.api.libs.json._
 
@@ -14,7 +14,7 @@ case class FP(followerId: String, followeeId: String, timestamp: Long, t: String
 object UserGenerator {
   implicit val followPairFormatter: Format[FP] = Json.format[FP]
   val bucket = couchbase.bucket
-  val numberOfUsers = 100
+  val numberOfUsers = 5000
   val userStandard = 1
 
   def runUsers() = {
@@ -32,7 +32,7 @@ object UserGenerator {
         "http://google.pl/abcdefghijl",
         "en",
         "fb",
-        Some(List.range(1, 100).map(n => s"$n"))
+        Some(List.range(a + 1, a + 200).map(UserId(_)))
       ))
     }
   }

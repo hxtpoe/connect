@@ -25,20 +25,20 @@ object FacebookProfile extends Counters {
     Await.result(incrAndGet("users_counter", 1), 1 second)
   }
 
-  def createOrMerge(profile: FacebookProfile): String = {
+  def createOrMerge(profile: FacebookProfile): UserId = {
     Await.result(User.findUserIdByFacebookId(profile.id), 2 second) match {
-      case Some(id) => id
+      case Some(id) => UserId(id.drop(6).toInt)
       case None => {
-        val newIdenfifier = "user::" + increment()
+        val newIdenfifier = increment()
         bucket.set[JsValue](
-          newIdenfifier.toString, Json.toJson(profile).as[JsObject] ++
+          "user::" + newIdenfifier.toString, Json.toJson(profile).as[JsObject] ++
             Json.obj(
               "provider" -> "fb",
               "type" -> "user",
               "created_at" -> getTimestamp(),
-              "followees" -> JsArray(Seq(JsString(newIdenfifier)))
+              "followees" -> List()
             ))
-        newIdenfifier.toString
+        UserId(newIdenfifier)
       }
     }
   }

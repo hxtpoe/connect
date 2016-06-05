@@ -5,13 +5,14 @@ import javax.ws.rs.{PathParam, QueryParam}
 import actors.timeline.CalculateCurrentTimelineActor
 import akka.actor.Props
 import com.wordnik.swagger.annotations._
-import models.{Follower, User}
+import models.{Follower, User, UserId}
 import play.api.Play.current
 import play.api.libs.concurrent.Akka
 import play.api.libs.json._
 import play.api.mvc._
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 
 @Api(value = "/followees")
@@ -22,17 +23,22 @@ object FollowController extends Controller {
   val CalculateCurrentTimelineActor = Akka.system.actorOf(Props[CalculateCurrentTimelineActor], name = "RefreshTimelineActor")
 
   def getFollowees(
-                    @ApiParam(value = "userId") @PathParam("userId") userId: String,
+                    @ApiParam(value = "userId") @PathParam("userId") userId: Int,
                     @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) =
     Action.async {
-      for {
-        user <- User.find(userId.toString)
+      val future = for {
+        user <- User.find(UserId(userId))
         f <- User.getFollowees(user.get, skip)
       } yield {
+
         Ok(Json.obj(
-          "followees" -> f,
+          "followees" -> Json.toJson(f.map { case (id, user) => (id.toString, user) }),
           "count" -> user.get.followees.getOrElse(List()).size
         ))
+      }
+
+      future.recoverWith {
+        case _ => Future(NotFound("xx"))
       }
     }
 
@@ -46,11 +52,11 @@ object FollowController extends Controller {
       new ApiResponse(code = 200, message = "Success")
     ))
   def getFollowers(
-                    @ApiParam(value = "userId") @PathParam("userId") userId: String,
+                    @ApiParam(value = "userId") @PathParam("userId") userId: Int,
                     @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) =
     Action.async {
       for {
-        followers <- Follower.followers(userId, skip)
+        followers <- Follower.followers(UserId(userId), skip)
       } yield {
         Ok(Json.obj(
           "rows" -> Json.toJson(followers)
@@ -68,12 +74,14 @@ object FollowController extends Controller {
       new ApiResponse(code = 200, message = "Success")
     ))
   def getRichFollowers(
-                        @ApiParam(value = "userId") @PathParam("userId") userId: String,
+                        @ApiParam(value = "userId") @PathParam("userId") userId: Int,
                         @ApiParam(value = "skip") @QueryParam("skip") skip: Option[Int]) =
     Action.async {
       for {
-        followers <- Follower.followersIds(userId.toString, skip)
+        followers <- Follower.followersIds(UserId(userId), skip)
       } yield {
+
+
         Ok(Json.obj(
           "rows" -> Json.toJson(followers)
         ))
@@ -95,8 +103,9 @@ object FollowController extends Controller {
               @ApiParam(value = "followeeId") @PathParam("followeeId") followeeId: Int) =
     Action {
       request => {
-        User.follow(followerId.toString, followeeId.toString)  map {
-          case true => CalculateCurrentTimelineActor ! s"user::$followerId"
+        CalculateCurrentTimelineActor ! UserId(followerId)
+        User.follow(UserId(followerId), UserId(followeeId)) map {
+          case true => CalculateCurrentTimelineActor ! UserId(followerId)
         }
 
         Ok("added")
@@ -117,8 +126,11 @@ object FollowController extends Controller {
                 @ApiParam(value = "followeeId") @PathParam("followeeId") followeeId: Int) =
     Action {
       request => {
-        User.unfollow(followerId.toString, followeeId.toString) map {
-          case true => CalculateCurrentTimelineActor ! s"user::$followerId"
+
+        User.unfollow(UserId(followerId), UserId(followeeId)) map {
+          case true => {
+            CalculateCurrentTimelineActor ! UserId(followerId)
+          }
         }
 
         Ok("unfollowed")

@@ -1,7 +1,8 @@
 package models
 
 import java.util
-import com.couchbase.client.java.view.{Stale => NewStale, DefaultAsyncViewRow, AsyncViewResult, AsyncViewRow, ViewQuery}
+
+import com.couchbase.client.java.view.{AsyncViewResult, AsyncViewRow, DefaultAsyncViewRow, Stale => NewStale, ViewQuery}
 import datasources.couchbase
 import org.reactivecouchbase.play.PlayCouchbase
 import play.Play
@@ -24,18 +25,18 @@ object Follower {
 
   val view = (if (Play.application().isDev) "dev_" else "") + "followers"
 
-  def followers(userId: String, skip: Option[Int]) = {
+  def followers(userId: UserId, skip: Option[Int]) = {
     for {
       f <- followersIds(userId, skip)
       g = f.take(40)
-      profilesMap <- Future.sequence(g.map(id => User.findBase(UserId(id))))
+      profilesMap <- Future.sequence(g.map(id => User.findBase(userId)))
     } yield {
       profilesMap
     }
   }
 
-  def followersIds(userId: String, skip: Option[Int]): Future[List[String]] = {
-    val followeePromise = Promise[List[String]]()
+  def followersIds(userId: UserId, skip: Option[Int]): Future[List[UserId]] = {
+    val followeePromise = Promise[List[UserId]]()
 
     val result = datasources.newCouchbase.bucket.async()
       .query(
@@ -43,7 +44,7 @@ object Follower {
           .from(view, "all")
           .limit(3000)
           .stale(NewStale.FALSE)
-          .key(s"$userId")
+          .key(userId.id.toString)
           .inclusiveEnd(true)
       )
 
@@ -52,22 +53,22 @@ object Follower {
         result.rows()
       }
     })
-      .map[String](new Func1[AsyncViewRow, String] {
+      .map[UserId](new Func1[AsyncViewRow, UserId] {
       override def call(row: AsyncViewRow) = {
-        row.id
+        UserId(row.id.drop(6).toInt)
       }
     })
 
     ids.toList.subscribe(
-      new Action1[util.List[String]] {
-        override def call(t1: util.List[String]): Unit = {
+      new Action1[util.List[UserId]] {
+        override def call(t1: util.List[UserId]): Unit = {
           val bufferOfIds = scala.collection.JavaConversions.asScalaBuffer(t1)
           followeePromise.success(bufferOfIds.toIndexedSeq.toList)
         }
       },
       new Action1[Throwable] {
         override def call(t1: Throwable): Unit = {
-          followeePromise.failure(t1)
+          followeePromise.success(List())
         }
       }
     )
