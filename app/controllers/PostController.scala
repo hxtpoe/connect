@@ -37,13 +37,10 @@ object PostController extends Controller with DataPartitionable {
           json => {
             val uuid = java.util.UUID.randomUUID().toString()
             Post.create(uuid, UserId(userId), json)
-
             for {
               followees <- Follower.followersIds(UserId(userId), None)
             } yield {
               val userIdsList: List[UserId] = followees :+ UserId(userId)
-
-
               CalculateTimelineActor ! userIdsList
             }
 

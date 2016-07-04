@@ -8,10 +8,8 @@ class CalculateTimelineActor extends Actor {
     case userId: UserId => {
       models.Timeline.currentWeekTimeline(userId)
     }
-
     case list: List[UserId] => {
-      val it = list.grouped(30)
-
+      val it = list.grouped(20)
       while (it.hasNext) {
         it.next().map(models.Timeline.currentWeekTimeline(_))
         Thread.sleep(1000) // ;)

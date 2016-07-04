@@ -14,7 +14,7 @@ case class FP(followerId: String, followeeId: String, timestamp: Long, t: String
 object UserGenerator {
   implicit val followPairFormatter: Format[FP] = Json.format[FP]
   val bucket = couchbase.bucket
-  val numberOfUsers = 5000
+  val numberOfUsers = 50000
   val userStandard = 1
 
   def runUsers() = {

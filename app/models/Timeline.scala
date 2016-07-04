@@ -70,7 +70,6 @@ object Timeline extends DataPartitionable {
       myFollowees <- User.find(userId).map(_.get.followees).map(_.get)
       users = (myFollowees :+ userId).distinct
     } yield {
-
       var li: List[Post] = List()
       val futures = users.map(uId => Post.getAll(uId, currentYear, week))
 
