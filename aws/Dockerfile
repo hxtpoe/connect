@@ -1,6 +1,9 @@
-FROM dockerfile/java
-ADD connect-1.0-SNAPSHOT.zip /opt/myApp
-WORKDIR /opt/myApp
-RUN /opt/myApp/bin/myapp
+FROM java:8
+ARG user=hxtpoe
+ADD files /
+WORKDIR /opt/docker
+RUN ["chown", "-R", "daemon", "."]
+USER daemon
+ENTRYPOINT ["bin/connect"]
+CMD []
 EXPOSE 9000
-

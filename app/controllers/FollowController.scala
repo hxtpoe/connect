@@ -38,7 +38,7 @@ object FollowController extends Controller {
       }
 
       future.recoverWith {
-        case _ => Future(NotFound("xx"))
+        case ex: Exception => Future(NotFound(ex.getMessage))
       }
     }
 
@@ -80,8 +80,6 @@ object FollowController extends Controller {
       for {
         followers <- Follower.followersIds(UserId(userId), skip)
       } yield {
-
-
         Ok(Json.obj(
           "rows" -> Json.toJson(followers)
         ))
@@ -107,7 +105,6 @@ object FollowController extends Controller {
         User.follow(UserId(followerId), UserId(followeeId)) map {
           case true => CalculateCurrentTimelineActor ! UserId(followerId)
         }
-
         Ok("added")
       }
     }
@@ -126,13 +123,11 @@ object FollowController extends Controller {
                 @ApiParam(value = "followeeId") @PathParam("followeeId") followeeId: Int) =
     Action {
       request => {
-
         User.unfollow(UserId(followerId), UserId(followeeId)) map {
           case true => {
             CalculateCurrentTimelineActor ! UserId(followerId)
           }
         }
-
         Ok("unfollowed")
       }
     }

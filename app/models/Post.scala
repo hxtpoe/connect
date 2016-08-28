@@ -113,6 +113,32 @@ object Post extends DataPartitionable {
     }
   }
 
+  def createWithDate(id: String, userId: UserId, post: Post, weekOfYear: Int) = {
+    val now = new Date()
+    val dateFormatGmt = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH) // RFC 2822
+
+    val calendar = Calendar.getInstance()
+
+    calendar.setWeekDate(currentYear, weekOfYear, 1)
+    calendar.getTime
+
+    dateFormatGmt.format(calendar.getTime)
+
+    val documentId = userId + "::posts::" + currentYear + "::" + weekOfYear
+
+    println(documentId)
+
+    for (
+      storedPost <- bucket.get[JsObject](documentId)
+    ) yield {
+
+      storedPost.getOrElse(JsArray()) match {
+        case array if array == JsArray() => add(post, id, userId, documentId, dateFormatGmt.format(calendar.getTime)) // create
+        case posts => append(storedPost.get, post, id, userId, documentId, dateFormatGmt.format(calendar.getTime)) //append
+      }
+    }
+  }
+
   def add(post: Post, uuid: String, userId: UserId, docId: String, stringDate: String): Future[OpResult] = {
 
     import models.UserIdConvertions.convertToString
