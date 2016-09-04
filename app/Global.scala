@@ -2,7 +2,6 @@ import java.util.TimeZone
 
 import datasources.{couchbase => cb}
 import filters.CorsFilter
-import generators.{PostGenerator, UserGenerator, TimelineGenerator}
 import play.api._
 import play.api.mvc._
 
@@ -15,12 +14,19 @@ object Global extends GlobalSettings {
     println("App staring...")
     TimeZone.setDefault(TimeZone.getTimeZone("UTC+0"))
 
+    System.setProperty("user.timezone", "GMT")
+
     //    val connection = RabbitMQConnection.getConnection
     //    val sendingChannel1 = connection.createChannel()
     //    Sender.startSending
-    UserGenerator.runUsers()
-    PostGenerator.runPosts()
-    TimelineGenerator.run()
+    //    cb.bucket.get("users_counter").map({
+    //      case None =>
+    //      {
+    //        UserGenerator.runUsers()
+    //        PostGenerator.runPosts()
+    //        TimelineGenerator.run()
+    //      }
+    //    })
   }
 
   override def onStop(app: Application) {

@@ -19,6 +19,7 @@ val appDependencies = Seq(
   "com.nimbusds" % "nimbus-jose-jwt" % "2.22.1",
   "com.wordnik" %% "swagger-play2" % "1.3.12",
   "com.rabbitmq" % "amqp-client" % "3.2.2",
+  "joda-time" % "joda-time" % "2.9.4",
   "org.specs2" %% "specs2-core" % "2.4.17" % "test",
   "org.specs2" %% "specs2-mock" % "2.4.17" % "test",
   "org.specs2" %% "specs2-junit" % "2.4.17" % "test",

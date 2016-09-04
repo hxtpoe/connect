@@ -2,7 +2,7 @@ package models
 
 import java.util
 
-import com.couchbase.client.java.view.{AsyncViewResult, AsyncViewRow, DefaultAsyncViewRow, Stale => NewStale, ViewQuery}
+import com.couchbase.client.java.view.{Stale => NewStale, DefaultAsyncViewRow, AsyncViewResult, AsyncViewRow, ViewQuery}
 import datasources.couchbase
 import org.reactivecouchbase.play.PlayCouchbase
 import play.Play

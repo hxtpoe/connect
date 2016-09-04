@@ -1,10 +1,12 @@
 package models
 
 import java.text.SimpleDateFormat
-import java.util.{Calendar, Date, Locale}
+import java.util.{Date, Locale}
 
 import com.couchbase.client.protocol.views.{ComplexKey, Query, Stale}
 import datasources.{couchbase => cb}
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
 import org.reactivecouchbase.client.OpResult
 import play.Play
 import play.api.libs.json._
@@ -37,6 +39,7 @@ object PostJoin {
 object Post extends DataPartitionable {
   implicit val bucket = cb.bucket
   implicit val fmt: Format[Post] = Json.format[Post]
+
   import models.UserIdConvertions.convertToString
 
   val hotView = (if (Play.application().isDev) "dev_") + "hotPosts"
@@ -99,42 +102,32 @@ object Post extends DataPartitionable {
     val now = new Date()
     val dateFormatGmt = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH) // RFC 2822
     dateFormatGmt.format(now)
-
     val documentId = userId + "::posts::" + currentYear + "::" + currentWeekOfYear
 
     for (
       storedPost <- bucket.get[JsObject](documentId)
     ) yield {
 
-      storedPost.getOrElse(JsArray()) match {
-        case array if array == JsArray() => add(post, id, userId, documentId, dateFormatGmt.format(now)) // create
-        case posts => append(storedPost.get, post, id, userId, documentId, dateFormatGmt.format(now)) //append
+      storedPost match {
+        case None => add(post, id, userId, documentId, dateFormatGmt.format(now)) // create
+        case Some(posts) => append(posts, post, id, userId, documentId, dateFormatGmt.format(now)) //append
       }
     }
   }
 
   def createWithDate(id: String, userId: UserId, post: Post, weekOfYear: Int) = {
-    val now = new Date()
-    val dateFormatGmt = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH) // RFC 2822
-
-    val calendar = Calendar.getInstance()
-
-    calendar.setWeekDate(currentYear, weekOfYear, 1)
-    calendar.getTime
-
-    dateFormatGmt.format(calendar.getTime)
-
+    val weekStartDate = new DateTime().withWeekOfWeekyear(weekOfYear).withDayOfWeek(3)
+    val fmt = DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss Z")
+    val date = fmt.withLocale(Locale.ENGLISH).print(weekStartDate)
     val documentId = userId + "::posts::" + currentYear + "::" + weekOfYear
-
-    println(documentId)
 
     for (
       storedPost <- bucket.get[JsObject](documentId)
     ) yield {
 
-      storedPost.getOrElse(JsArray()) match {
-        case array if array == JsArray() => add(post, id, userId, documentId, dateFormatGmt.format(calendar.getTime)) // create
-        case posts => append(storedPost.get, post, id, userId, documentId, dateFormatGmt.format(calendar.getTime)) //append
+      storedPost match {
+        case None => add(post, id, userId, documentId, date) // create
+        case Some(posts) => append(posts, post, id, userId, documentId, date) //append
       }
     }
   }
@@ -233,7 +226,9 @@ object Post extends DataPartitionable {
 }
 
 trait DataPartitionable {
-  def currentWeekOfYear = Calendar.getInstance().get(Calendar.WEEK_OF_YEAR)
+  def currentWeekOfYear: Int = {
+    dayOfYear / 7
+  }
 
   def currentDayOfYear: Int = simpleDataFormat("D")
 
@@ -262,7 +257,6 @@ trait DataPartitionable {
   val NUMBER_OF_WEEKS_IN_A_YEAR = 52
 
   def previousPageWeekNumber(year: Int, week: Int): Int = {
-
     week - 1 match {
       case 0 => NUMBER_OF_WEEKS_IN_A_YEAR
       case _ => week - 1

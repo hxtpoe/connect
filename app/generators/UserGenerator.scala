@@ -14,14 +14,14 @@ case class FP(followerId: String, followeeId: String, timestamp: Long, t: String
 object UserGenerator {
   implicit val followPairFormatter: Format[FP] = Json.format[FP]
   val bucket = couchbase.bucket
-  val numberOfUsers = 500
+  val numberOfUsers = 100
   val userStandard = 1
 
   def runUsers() = {
     Logger.warn("users created")
     for (a <- userStandard to userStandard + numberOfUsers) {
       if (a % 200 == 0) {
-        Thread.sleep(500)
+        Thread.sleep(10)
       }
       bucket.add[User]("user::" + a.toString, User(
         Some(a.toString),
@@ -36,7 +36,7 @@ object UserGenerator {
       ))
     }
 
-    bucket.add[Int]("users_counter", numberOfUsers);
+    bucket.add[Int]("users_counter", numberOfUsers)
   }
 
   def randInt(): Int = {

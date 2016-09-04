@@ -17,6 +17,10 @@ POST           /auth/facebook                                    controllers.Aut
 
 GET            /assets/*file                                     controllers.Assets.at(path="/public/", file)
 
+GET            /generate/users                                   controllers.GenerateController.users()
+GET            /generate/posts                                   controllers.GenerateController.posts()
+GET            /generate/timeline/:int                           controllers.GenerateController.timeline(int: Int)
+
 GET            /api/users/count                                  controllers.UserController.usersCount()
 GET            /api/user/:userId                                 controllers.UserController.user(userId: Int)
 GET            /api/user/:userId/extendedProfile                 controllers.UserController.extendedUser(userId: Int)

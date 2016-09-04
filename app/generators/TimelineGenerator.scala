@@ -1,8 +1,12 @@
 package generators
 
+import actors.timeline.CalculateCurrentTimelineActor
+import akka.actor.Props
 import datasources.couchbase
-import models.{UserId, Timeline, DataPartitionable}
+import models.{Timeline, DataPartitionable, UserId}
 import play.api.Logger
+import play.api.Play.current
+import play.api.libs.concurrent.Akka
 
 object TimelineGenerator extends DataPartitionable {
   val bucket = couchbase.bucket
@@ -10,16 +14,18 @@ object TimelineGenerator extends DataPartitionable {
 
   def uuid() = java.util.UUID.randomUUID().toString()
 
-  def run() = {
-    Logger.warn("timeline created")
+  val CalculateCurrentTimelineActor = Akka.system.actorOf(Props[CalculateCurrentTimelineActor], name = "RefreshGeneratorTimelineActor")
 
+  def run(int: Int) = {
     for {
       i <- 1 to numberOfUsers
-      week <- (currentWeekOfYear - 10) to currentWeekOfYear
+      week <- currentWeekOfYear - int to currentWeekOfYear
     } {
-      println(currentWeekOfYear)
-      Thread.sleep(30)
+      if (i % 10 == 0) {
+        Thread.sleep(1000)
+      }
       Timeline.specifiedTimeline(UserId(i), year, week)
     }
+    Logger.warn("timeline created")
   }
 }

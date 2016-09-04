@@ -1,9 +1,10 @@
 package models
 
-import java.text.SimpleDateFormat
 import java.util.Locale
 
 import datasources.couchbase
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
 import play.api.libs.json._
 
 import scala.collection.immutable.List
@@ -58,8 +59,7 @@ object Timeline extends DataPartitionable {
   }
 
   def specifiedTimeline(userId: UserId, year: Int, week: Int) = {
-    val numbersOfDaysInTheWeek = List.range((week + 1) * 7 - 6, (week + 1) * 7 + 1).filter(_ <= currentDayOfYear)
-
+    val numbersOfDaysInTheWeek = (1 to 7).toList.map(w => new DateTime().withWeekOfWeekyear(week).withDayOfWeek(w).getDayOfYear)
     calc(userId, numbersOfDaysInTheWeek, year, week)
   }
 
@@ -84,10 +84,9 @@ object Timeline extends DataPartitionable {
 
         numbersOfDaysInLastWeek.map(numberOfADay => {
           val postsForGivenDay = y.filter({ x =>
-            val dt = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH) // @ToDo extract to static pattern
-            dt.parse(x.createdAt.get)
-
-            new SimpleDateFormat("D", Locale.ENGLISH).format(dt.parse(x.createdAt.get)).toInt == numberOfADay // Tue, 09 Feb 2016 23:23:45 +0000
+            val fmt = DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss Z")
+            val dt: DateTime = fmt.withLocale(Locale.ENGLISH).parseDateTime(x.createdAt.get)
+            dt.dayOfYear().get == numberOfADay // Tue, 09 Feb 2016 23:23:45 +0000
           })
 
           val key = userId + s"::timelines::$year::$numberOfADay"
@@ -97,8 +96,9 @@ object Timeline extends DataPartitionable {
               bucket.delete(key)
             }
             case _ => {
-              bucket.set(key, Json.obj("posts" ->
+              bucket.set(key, Json.obj("posts" -> {
                 postsForGivenDay
+              }
               ))
             }
           }
